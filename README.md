@@ -19,3 +19,11 @@ Use the character button at any time during exploration to change the explorer n
 An optional loom at the shore offers a tile rotation puzzle. Restore all mountain peaks and choose a palette to create a personalized rug reference. It does not add another required encounter to the three-coin demo.
 
 Arcade's public catalog lists scarf, pillow cover, rug and jewelry categories. API access to specific categories has not been verified in this prototype. Plush toys, trophies and platinum materials remain exploratory concepts.
+
+## Sigil worlds and shrine interaction
+
+Sun, Moon, Mountain and Ocean each change the terrain palette, scenery and starting outfit. Ocean has palms, Mountain has snowy peaks, and Moon has night lighting and fireflies. Sigils use original engraved line art across menus, coins and reward previews.
+
+The shrine has a world marker and beacon. Entering its 2.8-unit interaction radius with enough coins changes guidance to "Shrine reached" and reveals an explicit activation button. The explorer's height follows the four platform surfaces, so feet stay above the steps. Shrine columns have collision while leaving the approach paths clear.
+
+"Watch again" only replays the current echo sequence. It retains the player's coins and position.
