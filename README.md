@@ -27,3 +27,8 @@ Sun, Moon, Mountain and Ocean each change the terrain palette, scenery and start
 The shrine has a world marker and beacon. Entering its 2.8-unit interaction radius with enough coins changes guidance to "Shrine reached" and reveals an explicit activation button. The explorer's height follows the four platform surfaces, so feet stay above the steps. Shrine columns have collision while leaving the approach paths clear.
 
 "Watch again" only replays the current echo sequence. It retains the player's coins and position.
+
+### Arcade simulation
+Milestone rewards and the character studio open a local physical-product flow: reference upload, pattern job, product job, example quote, hosted-checkout simulation, demo payment, and order tracking. The optional integration trace follows the documented request structure at https://docs.arcade.ai/quickstart. All prices, makers, options, category IDs, shipping, tax, orders and tracking are fixtures. No credentials, payments, personal details or network calls are used. Pendant, trophy and plush category availability is unverified. Live integration must retrieve catalog categories/options and replace fixtures with actual API responses and checkout URLs.
+
+`npm run check` validates syntax, shrine footing and commerce contracts, totals and order transitions. Preview is served with `npm run preview`.
