@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "check": "node --check dist/game.js && node --check dist/world.js",
+    "check": "node --check dist/game.js && node --check dist/world.js && node --check dist/keepsakes.js",
     "preview": "node preview.mjs"
   },
   "keywords": [],
