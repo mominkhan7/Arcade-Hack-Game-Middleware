@@ -1,3 +1,5 @@
 node_modules/
 .sites-runtime/
 *.tar.gz
+dist/server/
+dist/.openai/
