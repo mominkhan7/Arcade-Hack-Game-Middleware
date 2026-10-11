@@ -52,7 +52,7 @@ struct ArcadeHome: View {
                         }
                         HStack {Text("YOUR NEXT CHAPTER").font(.system(size: 10,weight: .semibold)).tracking(1.6).foregroundStyle(.white.opacity(0.5)); Spacer();Text("03 WORLDS").font(.system(size: 9,design: .monospaced)).foregroundStyle(.white.opacity(0.35))}.padding(.top,8)
                         ForEach(Game.all) {game in
-                            Button {selected=game} label: {GameCard(game: game)}.buttonStyle(.plain).accessibilityIdentifier(game.id)
+                            Button {UIImpactFeedbackGenerator(style:.soft).impactOccurred();selected=game} label: {GameCard(game: game)}.buttonStyle(.plain).accessibilityIdentifier(game.id)
                         }
                         HStack(alignment: .top, spacing: 13) {
                             Image(systemName: "shippingbox.fill").font(.system(size: 19)).foregroundStyle(Color(red: 0.72,green: 0.85,blue: 0.76))
@@ -142,40 +142,72 @@ struct LibraryScreen: View {
         }
     }
 }
+struct WorldButtonStyle: ButtonStyle {
+    var ink: Color = .white
+    func makeBody(configuration: ButtonStyleConfiguration) -> some View {
+        configuration.label
+            .foregroundStyle(ink)
+            .frame(width: 54, height: 54)
+            .modifier(NexusGlass(radius: 27))
+            .scaleEffect(configuration.isPressed ? 0.88 : 1)
+            .brightness(configuration.isPressed ? 0.1 : 0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
 struct GameScreen: View {
     let game: Game
     let server: String
     let token: String
     @Environment(\.dismiss) private var dismiss
     @State private var error: String?
+    @State private var menu = false
+    @State private var action: String?
     @State private var reload = UUID()
-    @Environment(\.scenePhase) private var scenePhase
     var url: URL? {
         guard var components = URLComponents(string: server), ["http", "https"].contains(components.scheme), components.host != nil else {return nil}
         components.path = "/mobile-session"
         components.queryItems = [URLQueryItem(name: "token", value: token), URLQueryItem(name: "game", value: game.id)]
         return components.url
     }
+    func send(_ value: String) {menu=false;action=value+":"+UUID().uuidString}
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button {dismiss()} label: {Label("Play", systemImage: "chevron.left")}
-                Spacer()
-                Text(game.title).font(.system(size: 12, weight: .semibold, design: .monospaced))
-                Spacer()
-                Button {error=nil; reload=UUID()} label: {Image(systemName: "arrow.clockwise")}.accessibilityLabel("Reload game")
-            }.font(.caption).padding(.horizontal, 16).padding(.vertical, 10).modifier(NexusGlass(radius: 22)).padding(.horizontal, 12).padding(.vertical, 8)
+        ZStack(alignment: .top) {
+            Color.black.ignoresSafeArea()
             if let error {
-                ContentUnavailableView {Label("Connection interrupted", systemImage: "wifi.exclamationmark")} description: {Text(error)} actions: {Button("Retry") {self.error=nil; reload=UUID()}}
+                ContentUnavailableView {Label("Connection interrupted", systemImage: "wifi.exclamationmark")} description: {Text(error)} actions: {Button("Retry") {self.error=nil;reload=UUID()}}
             } else if let url {
-                GameWebView(url: url, error: $error).id(reload)
-            } else {ContentUnavailableView("Check demo connection", systemImage: "network", description: Text("Enter a valid server URL in the launcher settings."))}
-        }.background(.black)
+                GameWebView(url:url,error:$error,isPaused:menu,gameAction:action).id(reload).ignoresSafeArea()
+            }
+            HStack(spacing: 12) {
+                Button {UIImpactFeedbackGenerator(style:.soft).impactOccurred();dismiss()} label: {Image(systemName:"xmark").font(.system(size:18,weight:.semibold))}.buttonStyle(WorldButtonStyle(ink:game.id=="chess-atelier" ? Color(red:0.2,green:0.16,blue:0.13) : .white)).accessibilityLabel("Return to worlds")
+                Spacer(minLength: 0)
+                Text(game.title).font(.system(size:17,weight:.medium,design:.serif)).padding(.horizontal,19).frame(height:45).modifier(NexusGlass(radius:23))
+                Spacer(minLength: 0)
+                Button {UIImpactFeedbackGenerator(style:.soft).impactOccurred();menu=true} label: {Image(systemName:"ellipsis").font(.system(size:20,weight:.semibold))}.buttonStyle(WorldButtonStyle(ink:game.id=="chess-atelier" ? Color(red:0.2,green:0.16,blue:0.13) : .white)).accessibilityLabel("World menu")
+            }.padding(.horizontal,17).padding(.top,8)
+            .foregroundStyle(game.id=="chess-atelier" ? Color(red:0.2,green:0.16,blue:0.13) : .white)
+        }
+        .preferredColorScheme(game.id=="chess-atelier" ? .light : .dark)
+        .sheet(isPresented:$menu) {
+            VStack(alignment:.leading,spacing:22) {
+                HStack {Text("TAKE A BREATH").font(.system(size:10,weight:.semibold)).tracking(2).foregroundStyle(.secondary);Spacer();Image(systemName:game.symbol).foregroundStyle(.mint)}
+                Text(game.title).font(.system(size:35,weight:.medium,design:.serif))
+                Text(game.id=="chess-atelier" ? "Tap a piece, then a highlighted square. White moves first. Your match is saved as you play." : "Move with your left thumb. Your right thumb is for actions."+(game.id=="pattern-garden" ? " Drag the forest to look around. Your flight paints the artwork." : " Follow the golden light, then repeat the echo to wake the shrine.")).font(.system(size:16)).foregroundStyle(.secondary).lineSpacing(4)
+                VStack(spacing:12) {
+                    Button {menu=false} label:{Label("Keep playing",systemImage:"play.fill").font(.system(size:17,weight:.semibold)).frame(maxWidth:.infinity,minHeight:58)}.buttonStyle(.borderedProminent).tint(Color(red:0.74,green:0.86,blue:0.75))
+                    Button {send("keepsakes")} label:{Label("Your saved keepsakes",systemImage:"square.stack.3d.up").frame(maxWidth:.infinity,minHeight:54)}.buttonStyle(.bordered)
+                    if game.id=="relic-island" {Button {send("wardrobe")} label:{Label("Customize your explorer",systemImage:"person.crop.square").frame(maxWidth:.infinity,minHeight:54)}.buttonStyle(.bordered)}
+                    if game.id=="pattern-garden" {Button {send("collection")} label:{Label("Your artwork collection",systemImage:"photo.stack").frame(maxWidth:.infinity,minHeight:54)}.buttonStyle(.bordered)}
+                }.buttonBorderShape(.roundedRectangle(radius:20))
+            }.padding(28).presentationDetents([.medium,.large]).presentationDragIndicator(.visible)
+        }
     }
 }
 struct GameWebView: UIViewRepresentable {
     let url: URL
     @Binding var error: String?
+    var isPaused: Bool = false
+    var gameAction: String? = nil
     func makeCoordinator() -> Coordinator {Coordinator(error: $error, origin: url.host)}
     func makeUIView(context: UIViewRepresentableContext<GameWebView>) -> WKWebView {
         let configuration = WKWebViewConfiguration()
@@ -183,9 +215,13 @@ struct GameWebView: UIViewRepresentable {
         configuration.allowsInlineMediaPlayback = true
         configuration.userContentController.add(context.coordinator, name: "nexusCheckout")
         configuration.userContentController.add(context.coordinator, name: "nexusExport")
+        configuration.userContentController.add(context.coordinator, name: "nexusHaptic")
         configuration.userContentController.addScriptMessageHandler(context.coordinator, contentWorld: .page, name: "nexusDigest")
         // LAN HTTP is not a secure Web Crypto context. Bridge SHA-256 to CryptoKit.
+        let top=UIApplication.shared.connectedScenes.compactMap {($0 as? UIWindowScene)?.windows.first(where: {$0.isKeyWindow})}.first?.safeAreaInsets.top ?? 59
         let cryptoScript = """
+        document.documentElement.classList.add('native-shell');
+        document.documentElement.style.setProperty('--native-top','\(Int(top+72))px');
         if (!crypto.randomUUID) crypto.randomUUID = () => {const b=crypto.getRandomValues(new Uint8Array(16)); b[6]=(b[6]&15)|64; b[8]=(b[8]&63)|128; const h=[...b].map(x=>x.toString(16).padStart(2,'0')).join(''); return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);};
         if (!crypto.subtle) Object.defineProperty(crypto,'subtle',{value:{digest:async (algorithm,bytes)=>{if(algorithm!=='SHA-256')throw new Error('Unsupported digest');const a=new Uint8Array(bytes);let text='';for(const b of a)text+=String.fromCharCode(b);const hex=await window.webkit.messageHandlers.nexusDigest.postMessage(btoa(text));return Uint8Array.from(hex.match(/../g),h=>parseInt(h,16)).buffer;}}});
         """
@@ -199,15 +235,39 @@ struct GameWebView: UIViewRepresentable {
         webView.load(URLRequest(url: url))
         return webView
     }
-    func updateUIView(_ uiView: WKWebView, context: UIViewRepresentableContext<GameWebView>) {}
+    func updateUIView(_ uiView: WKWebView, context: UIViewRepresentableContext<GameWebView>) {
+        if context.coordinator.lastPause != isPaused {
+            context.coordinator.lastPause=isPaused
+            uiView.evaluateJavaScript("window.dispatchEvent(new CustomEvent('nexus-native-pause',{detail:{paused:\(isPaused ? "true":"false")}}))",completionHandler:nil)
+        }
+        if let gameAction,context.coordinator.lastAction != gameAction {
+            context.coordinator.lastAction=gameAction
+            let value=gameAction.components(separatedBy:":")[0]
+            if ["keepsakes","wardrobe","collection"].contains(value) {uiView.evaluateJavaScript("window.dispatchEvent(new CustomEvent('nexus-game-menu',{detail:'\(value)'}))",completionHandler:nil)}
+        }
+    }
     static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {uiView.configuration.userContentController.removeAllScriptMessageHandlers()}
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, WKScriptMessageHandlerWithReply, CheckoutDelegate {
         @Binding var error: String?
         let origin: String?
+        var lastPause=false
+        var lastAction: String?
+        var lastHaptic=Date.distantPast
         weak var checkoutWebView: WKWebView?
         weak var checkoutController: UIViewController?
         init(error: Binding<String?>, origin: String?) {_error=error; self.origin=origin}
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            if message.name == "nexusHaptic",message.frameInfo.isMainFrame,message.frameInfo.securityOrigin.host == origin,let kind=message.body as? String,Date().timeIntervalSince(lastHaptic)>0.045 {
+                lastHaptic=Date()
+                switch kind {
+                case "success": UINotificationFeedbackGenerator().notificationOccurred(.success)
+                case "error": UINotificationFeedbackGenerator().notificationOccurred(.error)
+                case "medium": UIImpactFeedbackGenerator(style:.medium).impactOccurred()
+                case "light": UIImpactFeedbackGenerator(style:.light).impactOccurred()
+                default: UISelectionFeedbackGenerator().selectionChanged()
+                }
+                return
+            }
             if message.name == "nexusExport", message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host == origin,
                let body=message.body as? [String:String], let base64=body["base64"], let data=Data(base64Encoded: base64), data.count <= 8_000_000,
                let name=body["filename"], ["png","svg","json","pgn"].contains(URL(fileURLWithPath: name).pathExtension) {

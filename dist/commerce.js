@@ -92,6 +92,7 @@ export function initForge(c) {
     if(event.detail?.status==='failed')showError(new Error('Payment could not be opened. Please try again.'));
     else await perform(()=>client.getKeepsake(session.id));
   });
+  window.addEventListener('nexus-open-collection',openCollection);
   callbacks=c;client=new NexusClient({gameId:c.gameId||'relic-island'});
   document.body.insertAdjacentHTML('beforeend',`<dialog id="forge-dialog"><div class="sheet"><div class="sheet-heading"><span class="eyebrow">NEXUS / PHYSICAL FORGE</span><button id="forge-close" class="close" aria-label="Close keepsake forge">×</button></div><div class="simulation-banner">SIMULATED EXPERIENCE · NO REAL CHARGE OR ORDER</div><div id="forge-steps"></div><span id="forge-phase" class="eyebrow"></span><h2 id="forge-name">Your keepsake</h2><div id="forge-image" class="product-preview"></div><p id="forge-error" class="category-note" role="alert" hidden></p><div id="forge-body"></div><details class="recipe integration-trace"><summary>How this keepsake was made</summary><pre id="forge-trace"></pre></details></div></dialog><dialog id="nexus-collection"><div class="sheet"><div class="sheet-heading"><h2>Saved keepsakes</h2><button id="nexus-collection-close" class="close" aria-label="Close saved keepsakes">×</button></div><p class="caption">Your designs and orders, saved for this game.</p><div id="nexus-collection-list"></div></div></dialog>`);
   $('forge-close').onclick=closeForge;$('forge-dialog').addEventListener('cancel',e=>{e.preventDefault();closeForge();});
