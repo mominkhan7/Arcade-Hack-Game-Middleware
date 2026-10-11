@@ -8,7 +8,7 @@ The reward pendant photograph is an AI generated concept. Arcade generation, gua
 
 ## Local use
 
-Run `npm run preview` and open http://127.0.0.1:4174/. Run `npm run check` for JavaScript syntax validation. The game assets remain in dist. The Nexus API runs on a Worker with persistent D1 storage; npm run build creates the deployment bundle.
+Run `npm run preview` and open http://127.0.0.1:4174/. Run `npm run check` for JavaScript syntax validation. The game assets remain in dist. The CraftKit API runs on a Worker with persistent D1 storage; npm run build creates the deployment bundle.
 
 ## Keepsakes and character design
 
@@ -29,14 +29,14 @@ The shrine has a world marker and beacon. Entering its 2.8-unit interaction radi
 "Watch again" only replays the current echo sequence. It retains the player's coins and position.
 
 ### Arcade simulation
-Milestone rewards and the character studio open a local physical-product flow: reference upload, pattern job, product job, example quote, hosted-checkout simulation, demo payment, and order tracking. The optional integration trace follows the documented request structure at https://docs.arcade.ai/quickstart. All prices, makers, options, category IDs, shipping, tax, orders and tracking are fixtures. The games call the Nexus backend, which saves design snapshots and simulated orders. No payment credentials or real orders are used. Pendant, trophy and plush category availability is unverified. Live integration must retrieve catalog categories/options and replace fixtures with actual API responses and checkout URLs.
+Milestone rewards and the character studio open a local physical-product flow: reference upload, pattern job, product job, example quote, hosted-checkout simulation, demo payment, and order tracking. The optional integration trace follows the documented request structure at https://docs.arcade.ai/quickstart. All prices, makers, options, category IDs, shipping, tax, orders and tracking are fixtures. The games call the CraftKit backend, which saves design snapshots and simulated orders. No payment credentials or real orders are used. Pendant, trophy and plush category availability is unverified. Live integration must retrieve catalog categories/options and replace fixtures with actual API responses and checkout URLs.
 
 `npm run check` validates syntax, shrine footing and commerce contracts, totals and order transitions. Preview is served with `npm run preview`.
 
-## Nexus integration
+## CraftKit integration
 
-Relic Island now uses the reusable Nexus keepsake middleware. Saved designs, generated products, quotes, and demo orders survive closing the forge and reloading. Open Saved keepsakes from the start menu or the square collection button while playing. Game customization after saving cannot change a saved reference.
+Relic Island now uses the reusable CraftKit keepsake middleware. Saved designs, generated products, quotes, and demo orders survive closing the forge and reloading. Open Saved keepsakes from the start menu or the square collection button while playing. Game customization after saving cannot change a saved reference.
 
 Signal Garden, available at `/signal-garden.html`, is a second playable circuit puzzle. Solve the nine-tile circuit and bring the exact pattern into a scarf using the same SDK, forge, and backend. Each game has its own collection.
 
-See [Nexus implementation and integration guide](nexus/README.md) for architecture, API usage, simulation boundaries, and requirements before enabling live Arcade commerce.
+See [CraftKit implementation and integration guide](craftkit/README.md) for architecture, API usage, simulation boundaries, and requirements before enabling live Arcade commerce.

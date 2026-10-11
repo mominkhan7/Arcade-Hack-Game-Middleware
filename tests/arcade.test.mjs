@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {ArcadeProvider} from '../nexus/providers/arcade.js';
-import {NexusService} from '../nexus/service.js';
-import {configuredProvider} from '../nexus/providers/index.js';
+import {ArcadeProvider} from '../craftkit/providers/arcade.js';
+import {CraftKitService} from '../craftkit/service.js';
+import {configuredProvider} from '../craftkit/providers/index.js';
 function setup({world='print',unpaid=true,price='89.95'}={}) {
   const calls=[]; let fail=false;
   const fetcher=async(url,options)=>{
@@ -28,7 +28,7 @@ function setup({world='print',unpaid=true,price='89.95'}={}) {
   };
   const provider=new ArcadeProvider({apiKey:'test-secret',fetcher});
   const records=new Map();const store={async insert(r){if(!records.has(r.id))records.set(r.id,structuredClone(r));return this.get(r.id);},async get(id){return structuredClone(records.get(id));},async update(r,v){if(records.get(r.id).version!==v)return false;records.set(r.id,structuredClone(r));return true;},async list(){return [...records.values()];}};
-  const service=new NexusService(store,{provider,now:()=>1000});
+  const service=new CraftKitService(store,{provider,now:()=>1000});
   const input={recipe:world==='print'?'scarf':'pendant',sourceEventId:'run-live',title:'My keepsake',prompt:'Preserve my ocean sigil.',design:{emblem:'ocean',referenceSvg:'<svg/>',referencePng:'data:image/png;base64,iVBORw0KGgo='}};
   return {service,provider,input,calls,fail:()=>{fail=true;}};
 }
@@ -58,7 +58,7 @@ test('only upstream paid order advances live checkout; failures never fall back 
  const s=setup({unpaid:false});const r=await s.service.create('player','relic-island',s.input);await s.service.act('player','relic-island',r.id,'generate');await s.service.get('player','relic-island',r.id);await s.service.get('player','relic-island',r.id);await s.service.act('player','relic-island',r.id,'checkout');
  const paid=await s.service.get('player','relic-island',r.id);assert.equal(paid.phase,'order');assert.equal(paid.order.orderId,'12345');
  s.fail();await assert.rejects(s.provider.catalog());
- assert.throws(()=>configuredProvider({NEXUS_PROVIDER:'live'}));
+ assert.throws(()=>configuredProvider({CRAFTKIT_PROVIDER:'live'}));
 });
 test('null vendor pricing blocks checkout rather than inventing a price',async()=>{
  const s=setup({price:null});const r=await s.service.create('player','relic-island',s.input);await s.service.act('player','relic-island',r.id,'generate');await s.service.get('player','relic-island',r.id);const pending=await s.service.get('player','relic-island',r.id);
@@ -69,4 +69,14 @@ test('stable request ids make retrying an uncertain generation safe',async()=>{
  await s.provider.start(r,1000);const first=s.calls.find(c=>c.endpoint==='/patterns/create').body.requestId;await s.provider.start(r,1000);
  assert.equal(s.calls.filter(c=>c.endpoint==='/patterns/create')[1].body.requestId,first);assert.ok(first.length<=128);
  r.phase='failed';await s.provider.start(r,1000);assert.notEqual(s.calls.filter(c=>c.endpoint==='/patterns/create')[2].body.requestId,first);
+});
+
+
+test('CraftKit keeps in-flight Arcade request IDs stable across the rename', () => {
+  const provider=new ArcadeProvider({apiKey:'test-key'});
+  const legacy={id:'ks_'+'a'.repeat(64),revision:2,attempt:1};
+  assert.equal(provider.requestId(legacy,'checkout-1'),'nexus-'+'a'.repeat(48)+'-2-1-checkout-1');
+  assert.equal(provider.requestId({...legacy,requestNamespace:'craftkit'},'checkout-1'),'craftkit-'+'a'.repeat(48)+'-2-1-checkout-1');
+  assert.equal(configuredProvider({NEXUS_PROVIDER:'live',ARCADE_API_KEY:'test-key'}).mode,'live');
+  assert.equal(configuredProvider({CRAFTKIT_PROVIDER:'simulated',NEXUS_PROVIDER:'live'}).mode,'simulated');
 });

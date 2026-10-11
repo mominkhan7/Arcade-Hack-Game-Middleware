@@ -1,6 +1,6 @@
 # Pattern Garden / a nocturne in light
 
-Open `/pattern-garden.html` on the existing Relic Island Site. A glowing moth spirit glides through a bioluminescent night forest. Its wings and iridescent trail absorb cyan from Mirrorwater, amber from flowers, and violet from the grove. The journey becomes an original abstract artwork, then an optional demo collectible and physical keepsake through the shared Nexus layer.
+Open `/pattern-garden.html` on the existing Relic Island Site. A glowing moth spirit glides through a bioluminescent night forest. Its wings and iridescent trail absorb cyan from Mirrorwater, amber from flowers, and violet from the grove. The journey becomes an original abstract artwork, then an optional demo collectible and physical keepsake through the shared CraftKit layer.
 
 ## Presenter walkthrough
 
@@ -18,11 +18,11 @@ Tonic’s [Rhythm & the Machine](https://tonic.xyz/series/rhythm-and-the-machine
 
 Static meshes are batched by material; foliage, grasses, and light plants use instancing. Grass counts are bounded. A quarter-resolution separable bloom pass adds glow. Pixel ratio starts at up to 1.75 and reduces after sustained low frame rates, shadow maps are disabled, and map/HUD updates are throttled. Local desktop flight tests measured about 60 FPS; other hardware may vary. The pond uses an animated reflection-like water shader rather than planar scene reflection.
 
-The flow-field SVG is deterministic for a fixed design. Renderer version 5 and SHA-256 identify its snapshot. Each new point records flight altitude as well as planar position, biome, and sampled hue. The ribbon floats at that altitude and connects continuously to the moth. Older saved routes are lifted to flight height. Startup builds the ribbon once, movement reuses vectors, and per-point trail discs have been removed to reduce draw calls. The 550-point cap and compact SVG keep the design below Nexus’s 90 KB limit; a 550-point airborne sample was 87,184 bytes.
+The flow-field SVG is deterministic for a fixed design. Renderer version 5 and SHA-256 identify its snapshot. Each new point records flight altitude as well as planar position, biome, and sampled hue. The ribbon floats at that altitude and connects continuously to the moth. Older saved routes are lifted to flight height. Startup builds the ribbon once, movement reuses vectors, and per-point trail discs have been removed to reduce draw calls. The 550-point cap and compact SVG keep the design below CraftKit’s 90 KB limit; a 550-point airborne sample was 87,184 bytes.
 
 ## Demo boundaries
 
-Commerce uses sample prices and simulated checkout/fulfillment. No real charge, manufacturing request, or shipment occurs. The collectible is a local simulation with a fingerprint-derived token ID; metadata explicitly sets chain and contract to null and grants no physical redemption entitlement. Digital artworks are local to this browser; physical keepsakes and orders persist through Nexus. Live minting and production require real providers and transaction authorization.
+Commerce uses sample prices and simulated checkout/fulfillment. No real charge, manufacturing request, or shipment occurs. The collectible is a local simulation with a fingerprint-derived token ID; metadata explicitly sets chain and contract to null and grants no physical redemption entitlement. Digital artworks are local to this browser; physical keepsakes and orders persist through CraftKit. Live minting and production require real providers and transaction authorization.
 
 ## Files and validation
 
@@ -30,12 +30,12 @@ Commerce uses sample prices and simulated checkout/fulfillment. No real charge, 
 - `dist/garden-art.js`: deterministic abstract SVG renderer.
 - `dist/pattern-garden.js`: draft state, artifact snapshots, collection, demo mint, downloads, WebMCP tools, and commerce adapter.
 - `dist/pattern-garden.html` and `.css`: game HUD, dialogs, and touch layout.
-- `dist/commerce.js` and `dist/nexus-client.js`: shared integration, reused directly.
-- `nexus/recipes.js`: existing Pattern Garden game registration.
+- `dist/commerce.js` and `dist/craftkit-client.js`: shared integration, reused directly.
+- `craftkit/recipes.js`: existing Pattern Garden game registration.
 
-`NEXUS_PORT=4182 npm run preview` starts local development. `npm run check` includes syntax checks for the garden and the existing middleware tests. `npm run build` packages the games and Nexus Worker.
+`CRAFTKIT_PORT=4182 npm run preview` starts local development. `npm run check` includes syntax checks for the garden and the existing middleware tests. `npm run build` packages the games and CraftKit Worker.
 
-The full journey, discovery, artifact reveal, local collectible, save/reopen, and exact-SVG Nexus generation/quote were exercised in the browser. Version 5 also verifies E preview before all three discoveries, saving an airborne flight snapshot, and PNG generation. Higher-resolution flight measured 60 FPS locally at pixel ratio 1.75. Download links use browser Blob downloads; automated download capture was unavailable in the in-app browser.
+The full journey, discovery, artifact reveal, local collectible, save/reopen, and exact-SVG CraftKit generation/quote were exercised in the browser. Version 5 also verifies E preview before all three discoveries, saving an airborne flight snapshot, and PNG generation. Higher-resolution flight measured 60 FPS locally at pixel ratio 1.75. Download links use browser Blob downloads; automated download capture was unavailable in the in-app browser.
 
 ## Generated foliage asset
 

@@ -1,10 +1,10 @@
 {
-  "name": "relic-island",
+  "name": "craftkit",
   "version": "1.0.0",
-  "description": "",
+  "description": "CraftKit connects games to Arcade through a shared SDK, commerce UI, and backend.",
   "main": "index.js",
   "scripts": {
-    "check": "node --check dist/game.js && node --check dist/world.js && node --check dist/keepsakes.js && node --check dist/sigils.js && node --check dist/commerce.js && node --check dist/commerce-model.js && node --test tests/*.test.mjs && node --check nexus/service.js && node --check nexus/api.js && node --check dist/nexus-client.js && node --check dist/signal-garden.js && node --check dist/pattern-garden.js && node --check dist/pattern-garden-world.js && node --check dist/garden-art.js && node --check dist/chess-game.js && node --check dist/chess-engine.js && node --check dist/chess-art.js && node --check dist/library.js && node --check dist/tactile.js && node --check dist/chess-pieces.js",
+    "check": "node --check dist/game.js && node --check dist/world.js && node --check dist/keepsakes.js && node --check dist/sigils.js && node --check dist/commerce.js && node --check dist/commerce-model.js && node --test tests/*.test.mjs && node --check craftkit/service.js && node --check craftkit/api.js && node --check dist/craftkit-client.js && node --check dist/signal-garden.js && node --check dist/pattern-garden.js && node --check dist/pattern-garden-world.js && node --check dist/garden-art.js && node --check dist/chess-game.js && node --check dist/chess-engine.js && node --check dist/chess-art.js && node --check dist/library.js && node --check dist/tactile.js && node --check dist/chess-pieces.js",
     "preview": "node preview.mjs",
     "build": "node scripts/build.mjs",
     "db:generate": "drizzle-kit generate",

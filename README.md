@@ -1,8 +1,8 @@
-# ArcadeHack Game Middleware
+# CraftKit
 
-Three playable experiences and **Nexus**, a shared middleware layer that turns a player's design or achievement into a saved keepsake and a physical-product commerce journey.
+Three playable experiences and **CraftKit**, a shared middleware layer that turns a player's design or achievement into a saved keepsake and a physical-product commerce journey.
 
-This is an Arcade hackathon project exploring a simple idea: **the object is more meaningful when the player has a story behind it.** Games own the experience and capture the design; Nexus owns the reusable design-to-order lifecycle.
+This is an Arcade hackathon project exploring a simple idea: **the object is more meaningful when the player has a story behind it.** Games own the experience and capture the design; CraftKit owns the reusable design-to-order lifecycle.
 
 ## What we built and why
 
@@ -14,27 +14,27 @@ This is an Arcade hackathon project exploring a simple idea: **the object is mor
 
 Relic Island includes Sun, Moon, Mountain, and Ocean worlds, touch and keyboard controls, forgiving retries, a short three-coin demo, and longer exploration modes. Pattern Garden includes navigation aids, touch controls, animated scenery, bloom, batched geometry, and adaptive rendering quality.
 
-## Nexus: the shared platform
+## CraftKit: the shared platform
 
 All three games use an engine-neutral browser SDK and the same forge UI and backend:
 
 ```text
 Gameplay / player choices
     -> immutable design + reference SVG + story
-    -> Nexus saved keepsake
+    -> CraftKit saved keepsake
     -> product generation
     -> quote + options
     -> checkout
     -> order + fulfillment tracking
 ```
 
-Nexus saves design snapshots, fingerprints designs, deduplicates repeated submissions, scopes collections to players and games, reconciles generation jobs, validates options and quote expiration, and guards order transitions. Editing a character after saving cannot alter an earlier keepsake. Payment retries return the existing order, and database version checks protect concurrent changes.
+CraftKit saves design snapshots, fingerprints designs, deduplicates repeated submissions, scopes collections to players and games, reconciles generation jobs, validates options and quote expiration, and guards order transitions. Editing a character after saving cannot alter an earlier keepsake. Payment retries return the existing order, and database version checks protect concurrent changes.
 
 Studio attribution is recorded. Revenue settlement, wallets, and payouts are not implemented.
 
 ## Current live integration (October 11, 2026)
 
-Relic Island, Pattern Garden, and Chess Atelier now have a native iOS demo launcher in `ios/`. Nexus has a real server-only Arcade provider. It retrieves the live catalog, uploads game references, reconciles async generation, retrieves actual previews and prices, opens hosted checkout, and confirms orders through Arcade. See [IOS-DEMO.md](IOS-DEMO.md). `npm run preview` still defaults to simulation; `NEXUS_PROVIDER=live` with a server-side `ARCADE_API_KEY` selects the live provider. Existing simulated records remain labeled simulated.
+Relic Island, Pattern Garden, and Chess Atelier now have a native iOS demo launcher in `ios/`. CraftKit has a real server-only Arcade provider. It retrieves the live catalog, uploads game references, reconciles async generation, retrieves actual previews and prices, opens hosted checkout, and confirms orders through Arcade. See [IOS-DEMO.md](IOS-DEMO.md). `npm run preview` still defaults to simulation; `CRAFTKIT_PROVIDER=live` with a server-side `ARCADE_API_KEY` selects the live provider. Existing simulated records remain labeled simulated.
 
 The account catalog currently supports scarves, decorative pillows, and pendant necklaces. Rugs, trophies, and plush are not listed. Textile references are uploaded as PNGs; jewelry uses the game’s sigil brief because Arcade’s jewelry API does not accept reference images. Exact design preservation is not guaranteed: the player reviews Arcade’s actual preview.
 
@@ -44,7 +44,7 @@ The account catalog currently supports scarves, decorative pillows, and pendant 
 
 **In simulation mode:** vendor product generation, catalog options, prices, taxes/shipping, hosted checkout, payment, manufacturing, fulfillment, and tracking. These fixtures are used only by `DemoProvider`. `ArcadeProvider` performs real network calls and hosted checkout; it never simulates payment or fulfillment.
 
-Pattern Garden's digital collectible is a local browser simulation. It has no blockchain transaction, contract, wallet, or physical redemption entitlement. Its digital art collection and draft flight are browser-local; physical keepsake records persist through Nexus.
+Pattern Garden's digital collectible is a local browser simulation. It has no blockchain transaction, contract, wallet, or physical redemption entitlement. Its digital art collection and draft flight are browser-local; physical keepsake records persist through CraftKit.
 
 Product and material availability must be checked against a live catalog. Pendant, trophy, plush, and platinum concepts are exploratory. A reference is not a guarantee of exact manufacturing output.
 
@@ -67,15 +67,15 @@ Open:
 For another port:
 
 ```sh
-NEXUS_PORT=4182 npm run preview
+CRAFTKIT_PORT=4182 npm run preview
 ```
 
-The preview binds to loopback and supplies a development player identity. SQLite records live in `.sites-runtime/nexus.sqlite`; migrations apply automatically on startup. This folder is ignored by Git. Browser-local artwork stays in the browser and origin where it was created; changing the hostname or port does not transfer it.
+The preview binds to loopback and supplies a development player identity. New SQLite databases live in `.sites-runtime/craftkit.sqlite`; existing `.sites-runtime/nexus.sqlite` databases are reused; migrations apply automatically on startup. This folder is ignored by Git. Browser-local artwork stays in the browser and origin where it was created; changing the hostname or port does not transfer it.
 
 ## Development and validation
 
 ```sh
-npm run check       # JavaScript syntax plus shrine, commerce, and Nexus tests
+npm run check       # JavaScript syntax plus shrine, commerce, and CraftKit tests
 npm run build       # Bundle the Worker, assets, hosting metadata, and migrations
 npm run db:generate # Generate a migration after changing the Drizzle schema
 ```
@@ -98,9 +98,9 @@ dist/                        Browser game source, UI, SDK, and assets
   pattern-garden.*           Art journey and artifact UI
   pattern-garden-world.js    Moth flight and forest rendering
   garden-art.js              Deterministic SVG artwork renderer
-  nexus-client.js            Shared browser SDK
+  craftkit-client.js            Shared browser SDK
   commerce.js                Shared forge UI
-nexus/                       Middleware API, service, recipes, provider, store
+craftkit/                       Middleware API, service, recipes, provider, store
   README.md                  Architecture, API usage, live-integration requirements
   providers/demo.js          Simulated vendor implementation
   stores/d1.js               Persistent database adapter
@@ -119,7 +119,7 @@ reference-assets/            Earlier generated 2D references, retained for conte
 1. **Relic Island:** choose a world, explore the short demo, collect three coins, solve the echo, and activate the shrine. Show customization and a reward's forge flow.
 2. **Signal Garden:** connect all nine tiles and show the solved circuit becoming a scarf reference through the same forge.
 3. **Pattern Garden:** fly through the living palettes, reveal the artwork, save or export it, and select a scarf, rug, or pillow cover.
-4. **Nexus:** reopen saved keepsakes and advance a demo order to show persistence and the shared lifecycle.
+4. **CraftKit:** reopen saved keepsakes and advance a demo order to show persistence and the shared lifecycle.
 
 The pitch: different games create different meaningful designs, while one reusable layer handles the path from design to commerce.
 
@@ -135,7 +135,7 @@ Before enabling real commerce:
 4. Reconcile payment and fulfillment from trusted vendor events; disable demo payment and fulfillment controls.
 5. Confirm merchant, refunds, taxes, shipping, and any studio revenue-share arrangements.
 
-See [Nexus integration guide](nexus/README.md), [Relic Island guide](RELIC-ISLAND.md), [Pattern Garden guide](PATTERN-GARDEN.md), and [asset notes](ASSETS.md) for more detail.
+See [CraftKit integration guide](craftkit/README.md), [Relic Island guide](RELIC-ISLAND.md), [Pattern Garden guide](PATTERN-GARDEN.md), and [asset notes](ASSETS.md) for more detail.
 
 ## Project home and Git
 

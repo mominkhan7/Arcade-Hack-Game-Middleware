@@ -4,7 +4,7 @@ import {initKeepsakes,updateTrail,milestones,productSvg,openLoom,openStudio,appe
 import {initForge,openForge,forgeSnapshot} from './commerce.js';
 import {sigils,sigilSvg} from './sigils.js';
 let pausedFrom='playing',nativePaused=false;
-addEventListener('nexus-native-pause',e=>{nativePaused=!!e.detail.paused;clearMovement();});
+addEventListener('craftkit-native-pause',e=>{nativePaused=!!e.detail.paused;clearMovement();});
 const $=id=>document.getElementById(id);
 const emblems=sigils;const puzzleSigils=['sun','moon','mountain','ocean'];
 const modes={demo:{target:3,sequence:3},explorer:{target:12,sequence:4},adventurer:{target:20,sequence:5}};

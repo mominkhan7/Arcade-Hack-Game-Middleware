@@ -14,8 +14,8 @@ async function collect(directory = 'dist') {
 await collect();
 await mkdir('.sites-runtime',{recursive:true});
 await writeFile('.sites-runtime/assets.js','export default '+JSON.stringify(assets)+';');
-await build({entryPoints:['nexus/worker.js'],outfile:'dist/server/index.js',bundle:true,format:'esm',platform:'browser',target:'es2022',minify:true});
+await build({entryPoints:['craftkit/worker.js'],outfile:'dist/server/index.js',bundle:true,format:'esm',platform:'browser',target:'es2022',minify:true});
 await mkdir('dist/.openai',{recursive:true});
 await cp('.openai/hosting.json','dist/.openai/hosting.json');
 await cp('drizzle','dist/.openai/drizzle',{recursive:true});
-console.log('Built Nexus Worker, game assets, and database migrations.');
+console.log('Built CraftKit Worker, game assets, and database migrations.');
