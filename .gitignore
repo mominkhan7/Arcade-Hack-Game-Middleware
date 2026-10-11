@@ -13,3 +13,4 @@ ios/*.xcconfig
 *.xcuserstate
 xcuserdata/
 !ios/Demo.xcconfig
+.arcade-api/
