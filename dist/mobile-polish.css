@@ -1,5 +1,5 @@
 /* Phone-first controls and sheets; desktop worlds retain their established layout. */
-button,summary,select{-webkit-tap-highlight-color:transparent}button{transition:transform .18s cubic-bezier(.2,.8,.2,1),background .2s,box-shadow .2s}button.touch-down{transform:scale(.94)}
+button,summary,select{-webkit-tap-highlight-color:transparent}button{transition:transform .18s cubic-bezier(.2,.8,.2,1),background .2s,box-shadow .2s}button.touch-down{filter:brightness(1.12)}
 @media(max-width:650px){
 :root{--font:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;--display:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;--native-top:calc(env(safe-area-inset-top,0px) + 78px)}
 body{font-size:15px;line-height:1.5}button,input,select,textarea{font-size:16px}button,select,summary{min-height:48px}button:disabled{opacity:.5}button:focus-visible,summary:focus-visible{outline-width:3px;outline-offset:3px}
@@ -31,3 +31,8 @@ dialog::backdrop{background:#0310169c;backdrop-filter:blur(12px)}.sheet,.collect
 .expedition:has(.expedition-menu[open]) .mission,.expedition:has(.expedition-menu[open]) #waypoint,.expedition:has(.expedition-menu[open]) .world-bottom,.expedition:has(.expedition-menu[open]) #move-stick,.expedition:has(.expedition-menu[open]) #interact-world,.expedition:has(.expedition-menu[open]) .map-wrap{opacity:0;pointer-events:none}
 .expedition .mission h1{color:#f4f1e7}.expedition .mission .eyebrow{color:#c7d6cb}.expedition #waypoint strong{display:inline;margin-left:8px;color:#dce7e9;font-size:14px}.expedition #waypoint span{color:#c3d6d9}.expedition .echo-list{color:#ccd8d2}.expedition #physical-format{border-radius:15px;min-height:52px}
 }
+
+/* Press feedback must never move the pointer's hit target. */
+button,select,summary{touch-action:manipulation}
+button.close{flex-shrink:0;touch-action:manipulation;transform:none!important;min-width:48px;min-height:48px;z-index:5}
+button.close>*{pointer-events:none}

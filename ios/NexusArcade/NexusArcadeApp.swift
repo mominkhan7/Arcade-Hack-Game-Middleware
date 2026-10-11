@@ -147,9 +147,11 @@ struct WorldButtonStyle: ButtonStyle {
     func makeBody(configuration: ButtonStyleConfiguration) -> some View {
         configuration.label
             .foregroundStyle(ink)
-            .frame(width: 54, height: 54)
-            .modifier(NexusGlass(radius: 27))
+            // Keep the whole target fixed while only the icon animates.
             .scaleEffect(configuration.isPressed ? 0.88 : 1)
+            .frame(width: 54, height: 54)
+            .contentShape(Rectangle())
+            .modifier(NexusGlass(radius: 27))
             .brightness(configuration.isPressed ? 0.1 : 0)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
@@ -181,10 +183,10 @@ struct GameScreen: View {
             HStack(spacing: 12) {
                 Button {UIImpactFeedbackGenerator(style:.soft).impactOccurred();dismiss()} label: {Image(systemName:"xmark").font(.system(size:18,weight:.semibold))}.buttonStyle(WorldButtonStyle(ink:game.id=="chess-atelier" ? Color(red:0.2,green:0.16,blue:0.13) : .white)).accessibilityLabel("Return to worlds")
                 Spacer(minLength: 0)
-                Text(game.title).font(.system(size:17,weight:.medium,design:.serif)).padding(.horizontal,19).frame(height:45).modifier(NexusGlass(radius:23))
+                Text(game.title).font(.system(size:17,weight:.medium,design:.serif)).padding(.horizontal,19).frame(height:45).modifier(NexusGlass(radius:23)).allowsHitTesting(false)
                 Spacer(minLength: 0)
                 Button {UIImpactFeedbackGenerator(style:.soft).impactOccurred();menu=true} label: {Image(systemName:"ellipsis").font(.system(size:20,weight:.semibold))}.buttonStyle(WorldButtonStyle(ink:game.id=="chess-atelier" ? Color(red:0.2,green:0.16,blue:0.13) : .white)).accessibilityLabel("World menu")
-            }.padding(.horizontal,17).padding(.top,8)
+            }.padding(.horizontal,17).padding(.top,8).zIndex(10)
             .foregroundStyle(game.id=="chess-atelier" ? Color(red:0.2,green:0.16,blue:0.13) : .white)
         }
         .preferredColorScheme(game.id=="chess-atelier" ? .light : .dark)

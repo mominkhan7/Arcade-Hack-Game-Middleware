@@ -8,15 +8,15 @@ document.addEventListener('pointerdown',event=>{
   if(!control||control.disabled)return;
   const now=performance.now();if(now-lastFeedback>70){feedback();lastFeedback=now;}
   control.classList.add('touch-down');
-  const release=()=>control.classList.remove('touch-down');
-  window.addEventListener('pointerup',release,{once:true});window.addEventListener('pointercancel',release,{once:true});
+  const release=()=>{control.classList.remove('touch-down');window.removeEventListener('pointerup',release);window.removeEventListener('pointercancel',release);window.removeEventListener('blur',release);};
+  window.addEventListener('pointerup',release);window.addEventListener('pointercancel',release);window.addEventListener('blur',release);
 },{passive:true});
 // Animate opened sheets, including sheets injected by the shared commerce SDK.
 let knownOpen=new WeakSet();
 const observer=new MutationObserver(()=>{
   for(const dialog of document.querySelectorAll('dialog[open]')) {
     if(knownOpen.has(dialog))continue;knownOpen.add(dialog);
-    if(!matchMedia('(prefers-reduced-motion: reduce)').matches)dialog.animate([{opacity:0,transform:'translateY(26px) scale(.97)'},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:320,easing:'cubic-bezier(.2,.85,.25,1)'});
+    if(!matchMedia('(prefers-reduced-motion: reduce)').matches)dialog.animate([{opacity:0},{opacity:1}],{duration:320,easing:'cubic-bezier(.2,.85,.25,1)'});
     const forget=()=>knownOpen.delete(dialog);dialog.addEventListener('close',forget,{once:true});
   }
 });observer.observe(document.body,{subtree:true,attributes:true,attributeFilter:['open']});
