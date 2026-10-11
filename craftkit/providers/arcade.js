@@ -11,11 +11,11 @@ export class ArcadeProvider {
     if (!apiKey) throw new ArcadeError('Live Arcade is not configured.', 503);
     this.apiKey = apiKey; this.fetcher = fetcher; this.referenceGenerator = referenceGenerator;
   }
-  async call(endpoint, input) {
+  async call(endpoint, input, {timeout = 25000} = {}) {
     let response;
     try { response = await this.fetcher('https://platform.arcade.ai/v1' + endpoint, {
       method: 'POST', headers: {Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json', 'User-Agent': 'CraftKitKeepsakes/1.0'},
-      body: JSON.stringify(input), signal: AbortSignal.timeout(25000), redirect: 'error',
+      body: JSON.stringify(input), signal: AbortSignal.timeout(timeout), redirect: 'error',
     }); } catch { throw new ArcadeError('Arcade is temporarily unreachable. Your design is saved; retry to resume.'); }
     if (!response.ok) {
       // Never return upstream bodies, signed URLs, or credentials in errors.
@@ -103,14 +103,15 @@ export class ArcadeProvider {
         if (!record.job.result.productId) throw new ArcadeError('Arcade did not return the jewelry product.');
         record.productId = record.job.result.productId;
       } else {
-        // Arcade answers 409 while it is still starting a request with this requestId. Usually the next poll
-        // replays it and receives the job; if the 409 persists past 30 s, Arcade's guidance is a new requestId.
+        // Building a product can take Arcade longer than other calls, so this one waits up to two minutes.
+        // While the first attempt is still running, replays get 409 "still being processed": keep the same
+        // requestId as Arcade asks, and only start over with a new one if it is still stuck after five minutes.
         const suffix = record.productRetry ? `product-r${record.productRetry}` : 'product';
-        try { record.job = await this.call('/products/create', {requestId: this.requestId(record, suffix), patternId: record.patternId, categoryId: record.categoryId, selections: record.selections, fit: {mode: 'fill'}}); }
+        try { record.job = await this.call('/products/create', {requestId: this.requestId(record, suffix), patternId: record.patternId, categoryId: record.categoryId, selections: record.selections, fit: {mode: 'fill'}}, {timeout: 120000}); }
         catch (error) {
           if (error.upstream !== 409) throw error;
           if (!record.productStuckSince) { record.productStuckSince = now; return true; }
-          if (now - record.productStuckSince < 30000) return false;
+          if (now - record.productStuckSince < 300000) return false;
           record.productRetry = (record.productRetry || 0) + 1; record.productStuckSince = now; return true;
         }
         delete record.productStuckSince;

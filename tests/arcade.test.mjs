@@ -83,7 +83,7 @@ test('a game-chosen style model and palette reach patterns/create, and invalid o
  const body=plain.calls.find(c=>c.endpoint==='/patterns/create').body;
  assert.equal(body.modelId,undefined);assert.equal(body.colors,undefined);
 });
-test('a product request stuck on 409 is retried with a new requestId after 30 seconds',async()=>{
+test('a product request stuck on 409 keeps its requestId, and starts over only after five minutes',async()=>{
  const seen=[];let clock=1000;
  const fetcher=async(url,options)=>{
   const endpoint=new URL(url).pathname.replace('/v1','');
@@ -96,9 +96,9 @@ test('a product request stuck on 409 is retried with a new requestId after 30 se
  const p=new ArcadeProvider({apiKey:'k',fetcher});
  const record={id:'ks_'+'a'.repeat(60),revision:0,attempt:0,phase:'pattern',world:'print',categoryId:'cat',selections:{},job:{jobId:'job-pattern'},trace:[]};
  assert.equal(await p.reconcile(record,clock),true);assert.equal(record.phase,'pattern');
- assert.equal(await p.reconcile(record,clock+10000),false);
- assert.equal(await p.reconcile(record,clock+31000),true);assert.equal(record.productRetry,1);
- assert.equal(await p.reconcile(record,clock+32000),true);assert.equal(record.phase,'product');
+ assert.equal(await p.reconcile(record,clock+60000),false);assert.equal(record.productRetry,undefined);
+ assert.equal(await p.reconcile(record,clock+301000),true);assert.equal(record.productRetry,1);
+ assert.equal(await p.reconcile(record,clock+302000),true);assert.equal(record.phase,'product');
  assert.ok(seen.at(-1).endsWith('-product-r1'));
 });
 
