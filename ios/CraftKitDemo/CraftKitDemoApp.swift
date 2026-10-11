@@ -47,7 +47,7 @@ struct ArcadeHome: View {
                         }.padding(.top, 8)
                         VStack(alignment: .leading, spacing: 12) {
                             Text("A LITTLE PLAY. SOMETHING TO KEEP.").font(.system(size: 9, weight: .semibold, design: .monospaced)).tracking(1.8).foregroundStyle(.white.opacity(0.46))
-                            Text("Good stories.\nGreat keepsakes.").font(.system(size: 39, weight: .medium, design: .serif)).tracking(-1.3).lineSpacing(-1)
+                            Text("Your play.\nOriginal art.").font(.system(size: 39, weight: .medium, design: .serif)).tracking(-1.3).lineSpacing(-1)
                             Text("Explore a world. Make your mark.\nBring a piece of the story home.").font(.system(size: 13)).foregroundStyle(.white.opacity(0.56)).lineSpacing(4)
                         }
                         HStack {Text("YOUR NEXT CHAPTER").font(.system(size: 10,weight: .semibold)).tracking(1.6).foregroundStyle(.white.opacity(0.5)); Spacer();Text("03 WORLDS").font(.system(size: 9,design: .monospaced)).foregroundStyle(.white.opacity(0.35))}.padding(.top,8)
@@ -56,11 +56,12 @@ struct ArcadeHome: View {
                         }
                         HStack(alignment: .top, spacing: 13) {
                             Image(systemName: "shippingbox.fill").font(.system(size: 19)).foregroundStyle(Color(red: 0.72,green: 0.85,blue: 0.76))
-                            VStack(alignment: .leading, spacing: 6) {Text("Made from the way you play.").font(.system(size: 13,weight: .medium));Text("CraftKit prepares your keepsake. Arcade’s checkout handles the purchase when you’re ready.").font(.system(size: 11)).lineSpacing(3).foregroundStyle(.white.opacity(0.5))}
+                            VStack(alignment: .leading, spacing: 6) {Text("Made from the way you play.").font(.system(size: 13,weight: .medium));Text("Achievements and the way you play become personal art. Choose a keepsake when you’re ready.").font(.system(size: 11)).lineSpacing(3).foregroundStyle(.white.opacity(0.5))}
                         }.padding(19).modifier(CraftKitGlass(radius: 20)).padding(.bottom, 20)
                     }.padding(.horizontal, 23)
                 }
             }.tabItem {Label("Play",systemImage: "gamecontroller.fill")}.tag(0)
+            LibraryScreen(server: server,token: token, destination: "offerings", screenTitle: "CraftKit").tabItem {Label("CraftKit",systemImage: "sparkles")}.tag(2)
             LibraryScreen(server: server,token: token).tabItem {Label("Keepsakes",systemImage: "square.stack.3d.up.fill")}.tag(1)
         }.tint(Color(red: 0.77,green: 0.9,blue: 0.82))
         .fullScreenCover(item: $selected) {game in GameScreen(game:game,server:server,token:token)}
@@ -129,16 +130,18 @@ struct WorldIllustration: View {
 struct LibraryScreen: View {
     let server: String
     let token: String
+    var destination: String = "library"
+    var screenTitle: String = "Keepsakes"
     @State private var error: String?
     var body: some View {
         NavigationStack {
             Group {
                 if let error {ContentUnavailableView("Connection interrupted",systemImage:"wifi.exclamationmark",description:Text(error))}
                 else if var components=URLComponents(string:server) {
-                    let _ = {components.path="/mobile-session";components.queryItems=[URLQueryItem(name:"game",value:"library"),URLQueryItem(name:"token",value:token)]}()
+                    let _ = {components.path="/mobile-session";components.queryItems=[URLQueryItem(name:"game",value:destination),URLQueryItem(name:"token",value:token)]}()
                     if let url=components.url {GameWebView(url:url,error:$error)}
                 }
-            }.navigationTitle("Keepsakes").navigationBarTitleDisplayMode(.large).background(Color(red:0.045,green:0.065,blue:0.085))
+            }.navigationTitle(screenTitle).navigationBarTitleDisplayMode(.large).background(Color(red:0.045,green:0.065,blue:0.085))
         }
     }
 }

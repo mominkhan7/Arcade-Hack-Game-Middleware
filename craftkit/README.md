@@ -1,6 +1,6 @@
 # CraftKit keepsake middleware
 
-CraftKit turns a game-owned design snapshot into a saved keepsake with a product, quote, checkout, and order lifecycle. Relic Island and Signal Garden use the same SDK and forge UI against the same service.
+CraftKit turns a game-owned design snapshot into a saved keepsake with a product, quote, checkout, and order lifecycle. Relic Island, Pattern Garden, Chess Atelier and Signal Garden use the same SDK and forge UI against the same service.
 
 ## What runs where
 
@@ -63,3 +63,38 @@ Production Worker storage is D1. Drizzle owns migrations in `drizzle`; append mi
 CraftKit is the primary brand, SDK (`CraftKitClient`), API (`/api/craftkit`), and configuration prefix (`CRAFTKIT_`). The old SDK import, `/api/nexus` routes, `X-Nexus-Game` header, and `NEXUS_` environment values remain accepted for existing integrations. New configuration takes precedence.
 
 Applied migrations, the physical `nexus_keepsakes` table/index, and existing local `nexus.sqlite` databases are retained to preserve saved designs and orders. New databases use `craftkit.sqlite`. Existing Arcade requests retain their original idempotency namespace; newly created records use `craftkit`. The iOS bundle identifier and saved preference keys remain stable to preserve installed app data. New deep links use `craftkit://`; legacy `nexusarcade://` links remain accepted.
+
+## Game-ready offerings
+
+CraftKit links gameplay to original art in two categories: **accomplishments** (what the player earned) and **play creates design** (what their actions made). The interactive catalog is `/craftkit.html`, also available in the native CraftKit tab. Ten templates live in `dist/craftkit-offerings.js`; they are design use cases, separate from vendor product categories.
+
+| Offering | Gameplay source | Renderer / output | Demo integration |
+| --- | --- | --- | --- |
+| Achievement emblem | Quest or shrine unlock | Symbol / pendant | Relic Island, 3 coins |
+| Evolving relic | Higher personal milestone | Ornate symbol / pendant | Relic Island, 10 coins |
+| Match remembered | Finished match | Move art / scarf or pillow | Chess Atelier, completed match |
+| Collection mosaic | Collected symbols | Repeating motifs / textile | Reusable template |
+| Personal best | Best run's recorded route | Flow art / textile | Reusable template |
+| Every move, a mark | Actual match moves | Geometric move art / textile | Chess Atelier, player chooses |
+| Journey into art | Movement, hue and discovery | Flow art / textile | Pattern Garden, reveal |
+| Your character, your keepsake | Custom appearance | Game-supplied portrait / textile | Relic Island, outfitter |
+| Made by your hands | Loom or puzzle composition | Exact game artwork / textile | Relic Island, loom |
+| A shared story | Combined cooperative routes | Flow art / textile | Reusable template |
+
+Use the shared UI adapter after a meaningful accomplishment or explicit player choice:
+
+```js
+import {openOffering} from './commerce.js';
+await openOffering('move-art', {
+  sourceEventId: `match-${matchId}-${moves.length}`,
+  type: 'pillow',
+  activity: {moves}, // from/to chess squares and w/b colors
+  story: [{event: 'match-preserved', moves: moves.length}]
+});
+```
+
+`offeringArtwork(id, activity)` includes deterministic symbol, collected-motif, chess-move and movement renderers. Supply `design.referenceSvg` to preserve a game's own art renderer. Character and crafted-pattern templates require this reference. `buildOffering` validates the source event and output, clones the source, and records the template ID/category/version in the immutable design and story. Commerce is opt-in; templates do not listen to games or trigger purchases. Catalog availability is still enforced by the live provider.
+
+For a custom interface, `CraftKitClient.createFromOffering(id, input)` saves the same design through the SDK. Live textile integrations should rasterize the reference SVG with `rasterizeDesign` before submission; `openOffering` handles this automatically through the shared forge. The renderer supports chess square moves and world-space x/z/hue routes today; other engines can supply their own SVG.
+
+Chess can export its match as SVG poster artwork without buying anything. Physical posters, figurines and playable custom chessboards are future vendor formats, not purchasable demo categories. Additional games require registration and, in production, authenticated studio credentials and trusted gameplay events as described above.

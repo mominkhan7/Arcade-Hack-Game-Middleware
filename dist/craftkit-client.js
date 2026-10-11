@@ -1,3 +1,4 @@
+import {buildOffering} from './craftkit-offerings.js';
 // Engine-neutral SDK. No Arcade endpoints, catalog fixtures, prices, or payment credentials.
 export class CraftKitClient {
   constructor({gameId, baseUrl = '/api/craftkit', fetcher = (...args) => fetch(...args)}) {
@@ -17,6 +18,7 @@ export class CraftKitClient {
     return body;
   }
   createKeepsake(input) { return this.request('/keepsakes', input); }
+  createFromOffering(offeringId, input) { const config=buildOffering(offeringId,input); return this.createKeepsake({recipe:config.type,sourceEventId:config.sourceEventId,title:config.title,prompt:config.prompt,design:config.design,story:config.story}); }
   getKeepsake(id) { return this.request('/keepsakes/' + encodeURIComponent(id)); }
   listKeepsakes() { return this.request('/keepsakes'); }
   catalog() { return this.request('/catalog'); }

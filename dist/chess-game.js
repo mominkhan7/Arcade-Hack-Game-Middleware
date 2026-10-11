@@ -2,7 +2,7 @@ import {feedback} from './tactile.js';
 import {pieceSvg} from './chess-pieces.js';
 import {Chess,chooseMove} from './chess-engine.js';
 import {matchArtwork} from './chess-art.js';
-import {initForge,openForge,openCollection,supportedFormats} from './commerce.js';
+import {initForge,openForge,openCollection,supportedFormats,openOffering} from './commerce.js';
 const $=id=>document.getElementById(id);
 const chess=new Chess();let selected=null,busy=false,paused=false,nativePaused=false,pending=null,aiTimer,matchId,mode='computer';
 try{const saved=JSON.parse(localStorage.getItem('craftkit-chess-match') || localStorage.getItem('nexus-chess-match'));if(saved?.pgn)chess.loadPgn(saved.pgn);matchId=saved?.id;mode=saved?.mode==='friend'?'friend':'computer';}catch{chess.reset();}
@@ -18,8 +18,8 @@ function render(){
   else if(chess.isDraw())status='Match drawn. Your moves still made something unique.';
   else if(chess.isCheck())status+=(chess.turn()==='w'?' White':' Black')+' is in check.';
   $('status').textContent=status;$('opponent').textContent=mode==='computer'?'The Atelier':'Your friend';$('opponent-detail').textContent=mode==='computer'?'Computer · a gentle challenge':'Pass & play · black pieces';
-  $('match-preview').innerHTML=matchArtwork(history);$('move-count').textContent=history.length+' moves';
-  $('keep-match').disabled=history.length<4;$('keep-match').innerHTML=history.length<4?'Play 4 moves to make your keepsake <span>↗</span>':'Make my match keepsake <span>↗</span>';
+  $('match-preview').innerHTML=matchArtwork(history);$('match-format').disabled=history.length<4;$('move-count').textContent=history.length+' moves';
+  $('keep-match').disabled=history.length<4;$('keep-match').innerHTML=history.length<4?'Play 4 moves to make your keepsake <span>↗</span>':(chess.isGameOver()?'Preserve this match <span>↗</span>':'Preview my move art <span>↗</span>');
   $('history-empty').hidden=history.length>0;$('undo').disabled=history.length===0||busy;
   $('history').innerHTML=Array.from({length:Math.ceil(history.length/2)},(_,i)=>`<li><span>${i+1}.</span><span>${history[i*2]?.san||''}</span><span>${history[i*2+1]?.san||'—'}</span></li>`).join('');$('history').scrollTop=$('history').scrollHeight;
   persist();
@@ -52,6 +52,8 @@ $('mode').onchange=()=>{mode=$('mode').value;render();scheduleComputer();};
 $('saved').onclick=openCollection;
 $('export-match').onclick=()=>{const data=chess.pgn(),name='chess-atelier-'+matchId.slice(0,8)+'.pgn';if(window.webkit?.messageHandlers?.craftkitExport){const base64=btoa(data);window.webkit.messageHandlers.craftkitExport.postMessage({filename:name,base64});return;}const url=URL.createObjectURL(new Blob([data],{type:'application/x-chess-pgn'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 initForge({gameId:'chess-atelier',pause(){paused=true;clearTimeout(aiTimer);busy=false;},resume(){paused=false;scheduleComputer();},preview(){return matchArtwork(chess.history({verbose:true}));}});
-$('keep-match').onclick=async()=>{const history=chess.history({verbose:true});if(history.length<4)return;try{const formats=await supportedFormats(),type=!formats||formats.includes('scarf')?'scarf':formats.includes('pillow')?'pillow':formats[0];await openForge({type,title:'Chess Atelier / '+history.length+' moves',sourceEventId:'match-'+matchId+'-'+history.length,prompt:'An elegant geometric chess-inspired textile using the attached match artwork: ivory and muted terracotta curved paths on espresso brown, delicate brass framing, an abstract checkerboard. The paths are the actual moves of this match. Preserve the composition, no logos or extra text.',design:{referenceSvg:matchArtwork(history),pgn:chess.pgn(),fen:chess.fen(),moves:history.map(m=>({from:m.from,to:m.to,color:m.color,san:m.san}))},story:[{event:'chess-match',moves:history.length,result:chess.isCheckmate()?'checkmate':chess.isDraw()?'draw':'in-progress'}]});}catch(error){$('status').textContent=error.message;}};
+$('keep-match').onclick=async()=>{const history=chess.history({verbose:true});if(history.length<4)return;try{const formats=await supportedFormats(),requested=$('match-format').value,type=!formats||formats.includes(requested)?requested:['scarf','pillow'].find(f=>formats.includes(f));if(!type)throw new Error('Textile keepsakes are unavailable right now. You can still save your match artwork.');await openOffering(chess.isGameOver()?'match-victory':'move-art',{type,title:'Chess Atelier / '+history.length+' moves',sourceEventId:'match-'+matchId+'-'+history.length,prompt:'An elegant geometric chess-inspired textile using the attached match artwork: ivory and muted terracotta curved paths on espresso brown, delicate brass framing, an abstract checkerboard. The paths are the actual moves of this match. Preserve the composition, no logos or extra text.',design:{referenceSvg:matchArtwork(history),pgn:chess.pgn(),fen:chess.fen(),moves:history.map(m=>({from:m.from,to:m.to,color:m.color,san:m.san}))},story:[{event:'chess-match',moves:history.length,result:chess.isCheckmate()?'checkmate':chess.isDraw()?'draw':'in-progress'}]});}catch(error){$('status').textContent=error.message;}};
 addEventListener('craftkit-native-pause',e=>{nativePaused=!!e.detail.paused;if(nativePaused){clearTimeout(aiTimer);busy=false;}else scheduleComputer();});
 render();scheduleComputer();
+
+$('export-art').onclick=()=>{const data=matchArtwork(chess.history({verbose:true})),filename='chess-art-'+matchId.slice(0,8)+'.svg';if(window.webkit?.messageHandlers?.craftkitExport){window.webkit.messageHandlers.craftkitExport.postMessage({filename,base64:btoa(unescape(encodeURIComponent(data)))});return;}const url=URL.createObjectURL(new Blob([data],{type:'image/svg+xml'})),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};

@@ -30,7 +30,7 @@ http.createServer(async(req,res)=>{
     res.setHeader('Cache-Control','no-store');
     if (token) {
       if(url.pathname==='/mobile-session' && valid(url.searchParams.get('token'))) {
-        const game=({'pattern-garden':'/pattern-garden.html','chess-atelier':'/chess.html',library:'/library.html'})[url.searchParams.get('game')] || '/';
+        const game=({'pattern-garden':'/pattern-garden.html','chess-atelier':'/chess.html',library:'/library.html',offerings:'/craftkit.html'})[url.searchParams.get('game')] || '/';
         res.writeHead(303,{'Set-Cookie':`craftkit_demo=${token}; HttpOnly; SameSite=Strict; Path=/`,Location:game});res.end();return;
       }
       const cookie=req.headers.cookie?.split(';').map(v=>v.trim()).find(v=>v.startsWith('craftkit_demo=')||v.startsWith('nexus_demo='))?.split('=').slice(1).join('=');
