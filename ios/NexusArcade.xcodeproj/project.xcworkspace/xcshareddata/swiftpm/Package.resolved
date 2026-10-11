@@ -1,0 +1,15 @@
+{
+  "originHash" : "00230362f0f9130af57d5522a8df11be479bb4faa37b7c59ff0aa3e86c3045fb",
+  "pins" : [
+    {
+      "identity" : "checkout-sheet-kit-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Shopify/checkout-sheet-kit-swift",
+      "state" : {
+        "revision" : "f4c83a8bbd6a87f8d88ff01f7e2c9296883a11f1",
+        "version" : "3.9.2"
+      }
+    }
+  ],
+  "version" : 3
+}

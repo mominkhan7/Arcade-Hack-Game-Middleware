@@ -24,15 +24,15 @@ export class NexusService {
     if (!recipe) throw new NexusError('Unknown keepsake recipe.');
     if (typeof input.sourceEventId !== 'string' || !input.sourceEventId.length || input.sourceEventId.length > 160) throw new NexusError('A source event is required.');
     if (!input.design || typeof input.design !== 'object' || Array.isArray(input.design)) throw new NexusError('A design snapshot is required.');
-    if (JSON.stringify(input.design).length > 90000) throw new NexusError('Design reference is too large.');
+    if (JSON.stringify(input.design).length > 1500000) throw new NexusError('Design reference is too large.');
     if (typeof input.design.referenceSvg !== 'string' || !input.design.referenceSvg.startsWith('<svg')) throw new NexusError('A design reference is required.');
     if (typeof input.title !== 'string' || input.title.length > 160 || typeof input.prompt !== 'string' || input.prompt.length > 1000) throw new NexusError('Provide a short title and design brief.');
-    const design = copy(input.design), fingerprint = await digest(design);
-    const id = 'ks_' + await digest([owner, gameId, input.sourceEventId, recipe.id, fingerprint]);
+    const design = copy(input.design), fingerprint = await digest({...design, referencePng: undefined});
+    const id = 'ks_' + await digest([owner, gameId, input.sourceEventId, recipe.id, fingerprint, this.provider.mode]);
     const session = await this.provider.initialize(recipe.type, input);
     const record = {...session, id, owner, gameId, recipe: recipe.id, recipeVersion: recipe.version,
       sourceEventId: input.sourceEventId, design, fingerprint, story: copy(input.story || []),
-      simulated: true, availability: recipe.availability, version: 0, createdAt: this.now(), updatedAt: this.now(),
+      simulated: this.provider.mode === 'simulated', availability: this.provider.mode === 'live' ? 'live' : recipe.availability, version: 0, createdAt: this.now(), updatedAt: this.now(),
       product: null, quote: null, checkout: null, error: null};
     // Unique IDs prevent repeat unlocks / repeated network submissions duplicating records.
     return this.store.insert(record);
@@ -40,8 +40,13 @@ export class NexusService {
   async get(owner, gameId, id) {
     const record = await this.store.get(id);
     if (!record || record.owner !== owner || record.gameId !== gameId) throw new NexusError('Keepsake not found.', 404);
-    if (await this.provider.reconcile(record, this.now())) return this.save(record);
+    if (await this.providerFor(record).reconcile(record, this.now())) return this.save(record);
     return record;
+  }
+  providerFor(record) {
+    if (record.simulated) return new DemoProvider();
+    if (this.provider.mode !== 'live') throw new NexusError('Live Arcade is not configured.', 503);
+    return this.provider;
   }
   async list(owner, gameId) {
     return this.store.list(owner, gameId);
@@ -53,43 +58,44 @@ export class NexusService {
   }
   async act(owner, gameId, id, action, input = {}) {
     const record = await this.get(owner, gameId, id);
-    const now = this.now();
+    const now = this.now(), provider = this.providerFor(record);
     if (action === 'generate') {
       if (['pattern', 'product', 'quote', 'checkout', 'order'].includes(record.phase)) return record;
-      await this.provider.start(record, now);
+      await provider.start(record, now);
     } else if (action === 'options') {
       if (['pattern', 'product', 'order'].includes(record.phase)) throw new NexusError('Options are locked for this keepsake.');
-      try { validateOptions(recipes[record.recipe], input.selections, input.quantity); }
+      if (provider.mode === 'live') input.selections = await provider.select(record, input.selections, input.quantity);
+      else try { validateOptions(recipes[record.recipe], input.selections, input.quantity); }
       catch (error) { throw new NexusError(error.message); }
       if (canonical(record.selections) === canonical(input.selections) && record.quantity === input.quantity) return record;
       const changedDesignOptions = canonical(record.selections) !== canonical(input.selections);
       record.selections = copy(input.selections); record.quantity = input.quantity;
       record.checkout = null;
       if (changedDesignOptions) {
-        record.revision++; record.productId = 'demo_product_' + record.token + '_' + record.revision;
-        record.patternId = 'demo_pattern_' + record.token + '_' + record.revision;
+        record.revision++; record.attempt = 0; record.productId = record.simulated ? 'demo_product_' + record.token + '_' + record.revision : null;
+        record.patternId = record.simulated ? 'demo_pattern_' + record.token + '_' + record.revision : null;
         record.product = null; record.quote = null; record.phase = 'draft';
-      } else if (record.product) { record.phase = 'quote'; await this.provider.quote(record, now); }
+      } else if (record.product) { record.phase = 'quote'; await provider.quote(record, now); if (!record.quote) record.phase = 'product'; }
     } else if (action === 'checkout') {
       if (record.phase === 'order') return record;
       if (!record.quote || record.quote.designRevision !== record.revision || record.quote.expiresAt <= now) throw new NexusError('Quote expired. Refresh the quote before checkout.', 409);
       if (record.phase === 'checkout') return record;
       if (record.phase !== 'quote') throw new NexusError('Generate a product before checkout.');
-      await this.provider.checkout(record);
+      await provider.checkout(record);
     } else if (action === 'refresh-quote') {
       if (!record.product || record.phase === 'order') throw new NexusError('Generate a product first.');
-      record.phase = 'quote'; record.checkout = null; await this.provider.quote(record, now);
+      record.phase = 'quote'; record.checkout = null; await provider.quote(record, now); if (!record.quote) record.phase = 'product';
     } else if (action === 'pay-demo') {
       if (record.phase === 'order') return record;
-      if (this.provider.mode !== 'simulated' || record.phase !== 'checkout') throw new NexusError('Demo checkout is required.');
+      if (provider.mode !== 'simulated' || record.phase !== 'checkout') throw new NexusError('Demo checkout is required.');
       if (record.quote.expiresAt <= now) throw new NexusError('Quote expired. Refresh the quote before payment.', 409);
-      await this.provider.pay(record);
+      await provider.pay(record);
       record.attribution = {gameId, sourceEventId: record.sourceEventId, settlement: 'unconfigured'};
     } else if (action === 'advance-demo') {
-      if (this.provider.mode !== 'simulated' || !record.order) throw new NexusError('A demo order is required.');
+      if (provider.mode !== 'simulated' || !record.order) throw new NexusError('A demo order is required.');
       // Expected status makes a retried fast-forward request idempotent.
       if (input.expectedStatus !== record.order.status) return record;
-      await this.provider.advance(record);
+      await provider.advance(record);
     } else throw new NexusError('Unknown keepsake action.');
     return this.save(record);
   }

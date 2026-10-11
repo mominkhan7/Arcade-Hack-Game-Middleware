@@ -32,17 +32,23 @@ Nexus saves design snapshots, fingerprints designs, deduplicates repeated submis
 
 Studio attribution is recorded. Revenue settlement, wallets, and payouts are not implemented.
 
-## What is real and what is simulated
+## Current live integration (October 11, 2026)
+
+Relic Island, Pattern Garden, and Chess Atelier now have a native iOS demo launcher in `ios/`. Nexus has a real server-only Arcade provider. It retrieves the live catalog, uploads game references, reconciles async generation, retrieves actual previews and prices, opens hosted checkout, and confirms orders through Arcade. See [IOS-DEMO.md](IOS-DEMO.md). `npm run preview` still defaults to simulation; `NEXUS_PROVIDER=live` with a server-side `ARCADE_API_KEY` selects the live provider. Existing simulated records remain labeled simulated.
+
+The account catalog currently supports scarves, decorative pillows, and pendant necklaces. Rugs, trophies, and plush are not listed. Textile references are uploaded as PNGs; jewelry uses the game’s sigil brief because Arcade’s jewelry API does not accept reference images. Exact design preservation is not guaranteed: the player reviews Arcade’s actual preview.
+
+## Simulation mode
 
 **Implemented:** playable games, procedural 3D worlds, original deterministic artwork generation, design exports, shared SDK and forge, backend validation, persistent storage, saved collections, and lifecycle/state-transition logic.
 
-**Simulated:** vendor product generation, catalog options, prices, taxes/shipping, hosted checkout, payment, manufacturing, fulfillment, and tracking. No Arcade API calls, payment credentials, real charges, or real orders are used.
+**In simulation mode:** vendor product generation, catalog options, prices, taxes/shipping, hosted checkout, payment, manufacturing, fulfillment, and tracking. These fixtures are used only by `DemoProvider`. `ArcadeProvider` performs real network calls and hosted checkout; it never simulates payment or fulfillment.
 
 Pattern Garden's digital collectible is a local browser simulation. It has no blockchain transaction, contract, wallet, or physical redemption entitlement. Its digital art collection and draft flight are browser-local; physical keepsake records persist through Nexus.
 
 Product and material availability must be checked against a live catalog. Pendant, trophy, plush, and platinum concepts are exploratory. A reference is not a guarantee of exact manufacturing output.
 
-## Run locally
+## Run the browser locally
 
 Use **Node.js 22.13+** (or a newer release with `node:sqlite` and `DatabaseSync`) and npm.
 

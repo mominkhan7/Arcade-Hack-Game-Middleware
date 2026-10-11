@@ -8,3 +8,8 @@ dist/.openai/
 .env.*
 !.env.example
 *.log
+ios/build/
+ios/*.xcconfig
+*.xcuserstate
+xcuserdata/
+!ios/Demo.xcconfig

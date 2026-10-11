@@ -4,16 +4,19 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "check": "node --check dist/game.js && node --check dist/world.js && node --check dist/keepsakes.js && node --check dist/sigils.js && node --check dist/commerce.js && node --check dist/commerce-model.js && node --test tests/*.test.mjs && node --check nexus/service.js && node --check nexus/api.js && node --check dist/nexus-client.js && node --check dist/signal-garden.js && node --check dist/pattern-garden.js && node --check dist/pattern-garden-world.js && node --check dist/garden-art.js",
+    "check": "node --check dist/game.js && node --check dist/world.js && node --check dist/keepsakes.js && node --check dist/sigils.js && node --check dist/commerce.js && node --check dist/commerce-model.js && node --test tests/*.test.mjs && node --check nexus/service.js && node --check nexus/api.js && node --check dist/nexus-client.js && node --check dist/signal-garden.js && node --check dist/pattern-garden.js && node --check dist/pattern-garden-world.js && node --check dist/garden-art.js && node --check dist/chess-game.js && node --check dist/chess-engine.js && node --check dist/chess-art.js && node --check dist/library.js",
     "preview": "node preview.mjs",
     "build": "node scripts/build.mjs",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "demo:ios": "node scripts/demo-server.mjs",
+    "ios:configure": "node scripts/configure-ios.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "chess.js": "^1.4.0",
     "three": "^0.186.1"
   },
   "devDependencies": {

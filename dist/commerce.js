@@ -1,24 +1,27 @@
+import {rasterizeDesign} from './design-reference.js';
 import {NexusClient} from './nexus-client.js';
 const $ = id => document.getElementById(id);
 const escape = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const usd = m => '$' + Number(m.amount).toFixed(2);
+const usd = m => m ? new Intl.NumberFormat(undefined,{style:'currency',currency:m.currency}).format(Number(m.amount)) : 'Pricing pending';
+function openCheckoutUrl() { const url=session.checkout?.url; if (!url || new URL(url).protocol!=='https:') return; if(window.webkit?.messageHandlers?.nexusCheckout)window.webkit.messageHandlers.nexusCheckout.postMessage(url);else window.open(url,'_blank','noopener,noreferrer'); }
 const fulfillment = ['ordered','inProduction','inReview','approved','shipped','delivered'];
 const labels = {ordered:'Order placed',inProduction:'Maker in production',inReview:'Quality review',approved:'Ready to ship',shipped:'On its way',delivered:'Delivered'};
 let callbacks, client, session, observer, opening = 0;
 function preview(svg) { return `<img alt="Saved game design reference" src="data:image/svg+xml;charset=utf-8,${escape(encodeURIComponent(svg))}">`; }
 function frame(body) {
   $('forge-body').innerHTML = body;
-  $('forge-trace').textContent = JSON.stringify({keepsakeId:session.id, game:session.gameId, recipe:session.recipe, designFingerprint:session.fingerprint, designRevision:session.revision, sourceEventId:session.sourceEventId, story:session.story, provider: 'simulated', requests:session.trace},null,2);
+  $('forge-trace').textContent = JSON.stringify({keepsakeId:session.id, game:session.gameId, recipe:session.recipe, designFingerprint:session.fingerprint, designRevision:session.revision, sourceEventId:session.sourceEventId, story:session.story, provider: session.simulated ? 'simulated' : 'live', requests:session.trace},null,2);
   $('forge-name').textContent = session.title;
   $('forge-phase').textContent = ({draft:'01 / DESIGN',pattern:'01 / DESIGN',product:'02 / PRODUCT',quote:'02 / QUOTE',checkout:'03 / CHECKOUT',order:'04 / ORDER',failed:'GENERATION FAILED'})[session.phase];
-  $('forge-image').innerHTML = preview(session.design.referenceSvg);
+  $('forge-image').innerHTML = !session.simulated && session.product?.imageUrl ? `<img alt="Arcade product preview" src="${escape(session.product.imageUrl)}">` : preview(session.design.referenceSvg);
+  document.querySelector('.simulation-banner').textContent = session.simulated ? 'SIMULATED EXPERIENCE · NO REAL CHARGE OR ORDER' : 'LIVE ARCADE · REVIEW BEFORE PURCHASE';
   $('forge-image').classList.toggle('generating',['pattern','product'].includes(session.phase));
   const step = ({draft:0,pattern:0,product:1,quote:1,checkout:2,order:3,failed:0})[session.phase];
   $('forge-dialog').scrollTop=0;
   $('forge-steps').innerHTML = ['DESIGN','PRODUCT','CHECKOUT','ORDER'].map((s,i)=>`<span class="${i<=step?'done':''}">${s}</span>`).join('');
 }
-function warning() { return `<p class="category-note">${session.availability==='unverified'?'Concept category. Availability needs confirmation with Arcade.':'Sample catalog and product options. Live Arcade access is not connected.'}</p>`; }
-function options() { return `<div class="forge-options">${Object.entries(session.item.options).map(([key,values])=>`<label>${escape(key)}<select data-option="${escape(key)}">${values.map(v=>`<option ${session.selections[key]===v?'selected':''}>${escape(v)}</option>`).join('')}</select></label>`).join('')}<label>Quantity<select id="forge-quantity">${[1,2,3,4,5].map(n=>`<option ${n===session.quantity?'selected':''}>${n}</option>`).join('')}</select></label></div>`; }
+function warning() { if (!session.simulated) return `<p class="category-note">${session.world==='jewelry'?'Jewelry is generated from your sigil brief; review the resulting design before purchase.':'Your game artwork guides this product. Review Arcade’s actual preview before purchase.'}</p>`; return `<p class="category-note">${session.availability==='unverified'?'Concept category. Availability needs confirmation with Arcade.':'Sample catalog and product options. Live Arcade access is not connected.'}</p>`; }
+function options() { return (session.simulated ? '' : '<details><summary>Change product options</summary>') + `<div class="forge-options">${Object.entries(session.item.options).map(([key,values])=>`<label>${escape(key)}<select data-option="${escape(key)}">${values.map(v=>`<option ${session.selections[key]===v?'selected':''}>${escape(v)}</option>`).join('')}</select></label>`).join('')}<label>Quantity<select id="forge-quantity">${[1,2,3,4,5].map(n=>`<option ${n===session.quantity?'selected':''}>${n}</option>`).join('')}</select></label></div>` + (session.simulated ? '' : '</details>'); }
 function attachOptions() {
   document.querySelectorAll('[data-option],#forge-quantity').forEach(el=>el.onchange=()=>perform(async()=>{
     const selections = Object.fromEntries([...document.querySelectorAll('[data-option]')].map(el=>[el.dataset.option,el.value]));
@@ -43,18 +46,28 @@ function render() {
     frame(`<div class="job-state"><span class="forge-spinner"></span><strong>${session.phase==='pattern'?'Creating your pattern':'Building the physical product'}</strong><p>Your saved design stays tied to this keepsake. You can close this window and keep playing.</p></div>`); return;
   }
   if (session.phase==='draft'||session.phase==='failed') {
-    frame(`<p class="forge-description">Your design is saved. Choose its physical format, then generate a product.</p>${options()}${warning()}${session.error?`<p role="status">${escape(session.error)}</p>`:''}<button id="forge-generate" class="primary">${session.phase==='failed'?'Retry generation':'Generate product / demo'}</button><p class="caption">Your digital keepsake is yours even if you skip the purchase.</p>`);
+    frame(`<p class="forge-description">Your design is saved. Nexus has chosen a supported format and its default options for you.</p>${options()}${warning()}${session.error?`<p role="status">${escape(session.error)}</p>`:''}<button id="forge-generate" class="primary">${session.phase==='failed'?'Retry generation':session.simulated ? 'Generate product / demo' : 'Make my keepsake'}</button><p class="caption">Your digital keepsake is yours even if you skip the purchase.</p>`);
     attachOptions(); $('forge-generate').onclick=generate; return;
   }
   if (session.phase==='quote') {
     const product=session.product,quote=session.quote;
-    frame(`<div class="quote-heading"><span>EXAMPLE QUOTE</span><strong>${usd(product.unitPrice)} <small>/ item</small></strong></div><div class="maker-line"><span>Made by</span><strong>${escape(product.maker.name)}</strong><small>Fictional maker for this simulation</small></div>${options()}<div class="price-line"><span>Items × ${session.quantity}</span><strong>${usd(quote.subtotal)}</strong></div><p class="caption">Sample pricing. Quote expires at ${new Date(quote.expiresAt).toLocaleTimeString()}. Shipping and tax follow in checkout.</p>${warning()}<button id="forge-checkout" class="primary">Open demo checkout</button><button id="forge-refresh" class="secondary">Refresh quote</button>`);
-    attachOptions(); $('forge-checkout').onclick=()=>perform(()=>client.openCheckout(session.id)); $('forge-refresh').onclick=()=>perform(()=>client.refreshQuote(session.id)); return;
+    frame(`<div class="quote-heading"><span>${session.simulated ? 'EXAMPLE QUOTE' : 'ARCADE PRICE'}</span><strong>${usd(product.unitPrice)} <small>/ item</small></strong></div><div class="maker-line"><span>Made by</span><strong>${escape(product.maker.name)}</strong><small>${session.simulated ? 'Fictional maker for this simulation' : 'Arcade maker'}</small></div>${!session.simulated ? `<p class="caption">${escape(product.selectionLabel)}</p>` : ''}${options()}<div class="price-line"><span>Items × ${session.quantity}</span><strong>${usd(quote.subtotal)}</strong></div><p class="caption">${session.simulated ? 'Sample pricing.' : 'Shipping, tax, service fees, and applicable discounts appear in Arcade checkout.'} Quote expires at ${new Date(quote.expiresAt).toLocaleTimeString()}. ${session.simulated ? 'Shipping and tax follow in checkout.' : ''}</p>${warning()}<button id="forge-checkout" class="primary">${session.simulated ? 'Open demo checkout' : 'Bring it home'}</button><button id="forge-refresh" class="secondary">Refresh quote</button>`);
+    attachOptions(); $('forge-checkout').onclick=()=>perform(async()=>{const record=await client.openCheckout(session.id);session=record;if(!record.simulated)openCheckoutUrl();return record;}); $('forge-refresh').onclick=()=>perform(()=>client.refreshQuote(session.id)); return;
+  }
+  if (session.phase==='checkout' && !session.simulated) {
+    frame(`<p class="forge-description">Your keepsake is ready. Confirm the final total and delivery details to bring it home.</p><div class="price-line"><span>Items × ${session.quantity}</span><strong>${usd(session.quote.subtotal)}</strong></div><button id="forge-live-checkout" class="primary">Continue purchase</button><button id="forge-sync-order" class="secondary">Refresh order</button><p class="caption">Nexus confirms your order with Arcade after payment.</p>`);
+    $('forge-live-checkout').onclick=openCheckoutUrl;
+    $('forge-sync-order').onclick=()=>perform(()=>client.getKeepsake(session.id)); return;
   }
   if (session.phase==='checkout') {
     const totals=session.quote;
     frame(`<div class="checkout-title"><strong>Physical checkout</strong><span>SIMULATED</span></div><p class="forge-description">A live integration opens Arcade’s hosted checkout. This demo collects no payment details.</p><div class="checkout-item"><strong>${escape(session.title)}</strong><small>${escape(Object.values(session.selections).join(' / '))} · Qty ${session.quantity}</small></div><div class="demo-address"><span>DEMO SHIPPING DESTINATION</span><strong>Demo Explorer</strong><small>San Francisco, CA · United States</small></div>${['subtotal','shipping','tax','total'].map(key=>`<div class="price-line ${key==='total'?'total':''}"><span>${key==='tax'?'Tax / sample':key==='shipping'?'Shipping / sample':key}</span><strong>${usd(totals[key])}</strong></div>`).join('')}<div class="demo-payment">DEMO PAYMENT · No charge or real order</div><button id="forge-pay" class="primary">Complete demo payment / ${usd(totals.total)}</button><button id="forge-back" class="secondary">Back / refresh quote</button>`);
     $('forge-pay').onclick=()=>perform(()=>client.completeDemoPayment(session.id)); $('forge-back').onclick=()=>perform(()=>client.refreshQuote(session.id)); return;
+  }
+  if (session.phase==='order' && !session.simulated) {
+    const order=session.order;
+    frame(`<div class="order-heading"><span>${escape(order.orderNumber)}</span><strong>${escape(labels[order.status]||order.status)}</strong><p>Confirmed by Arcade.</p></div><div class="price-line"><span>Order total</span><strong>${usd(order.total)}</strong></div>${order.tracking.map(t=>`<p>${escape(t.company||'Carrier')} · ${escape(t.number||'Tracking pending')}</p>`).join('')}<button id="forge-sync-order" class="secondary">Refresh order</button>`);
+    $('forge-sync-order').onclick=()=>perform(()=>client.getKeepsake(session.id)); return;
   }
   if (session.phase==='order') {
     const order=session.order,index=fulfillment.indexOf(order.status);
@@ -74,8 +87,13 @@ async function generate() {
 }
 function closeForge(){opening++;observer?.abort();$('forge-dialog').close();callbacks.resume();}
 export function initForge(c) {
+  window.addEventListener('nexus-payment-return',async event=>{
+    if(!session || session.simulated || session.phase!=='checkout')return;
+    if(event.detail?.status==='failed')showError(new Error('Payment could not be opened. Please try again.'));
+    else await perform(()=>client.getKeepsake(session.id));
+  });
   callbacks=c;client=new NexusClient({gameId:c.gameId||'relic-island'});
-  document.body.insertAdjacentHTML('beforeend',`<dialog id="forge-dialog"><div class="sheet"><div class="sheet-heading"><span class="eyebrow">NEXUS / PHYSICAL FORGE</span><button id="forge-close" class="close" aria-label="Close keepsake forge">×</button></div><div class="simulation-banner">SIMULATED EXPERIENCE · NO REAL CHARGE OR ORDER</div><div id="forge-steps"></div><span id="forge-phase" class="eyebrow"></span><h2 id="forge-name">Your keepsake</h2><div id="forge-image" class="product-preview"></div><p id="forge-error" class="category-note" role="alert" hidden></p><div id="forge-body"></div><details class="recipe integration-trace"><summary>How this keepsake was made</summary><pre id="forge-trace"></pre></details></div></dialog><dialog id="nexus-collection"><div class="sheet"><div class="sheet-heading"><h2>Saved keepsakes</h2><button id="nexus-collection-close" class="close" aria-label="Close saved keepsakes">×</button></div><p class="caption">Designs and demo orders saved for this game.</p><div id="nexus-collection-list"></div></div></dialog>`);
+  document.body.insertAdjacentHTML('beforeend',`<dialog id="forge-dialog"><div class="sheet"><div class="sheet-heading"><span class="eyebrow">NEXUS / PHYSICAL FORGE</span><button id="forge-close" class="close" aria-label="Close keepsake forge">×</button></div><div class="simulation-banner">SIMULATED EXPERIENCE · NO REAL CHARGE OR ORDER</div><div id="forge-steps"></div><span id="forge-phase" class="eyebrow"></span><h2 id="forge-name">Your keepsake</h2><div id="forge-image" class="product-preview"></div><p id="forge-error" class="category-note" role="alert" hidden></p><div id="forge-body"></div><details class="recipe integration-trace"><summary>How this keepsake was made</summary><pre id="forge-trace"></pre></details></div></dialog><dialog id="nexus-collection"><div class="sheet"><div class="sheet-heading"><h2>Saved keepsakes</h2><button id="nexus-collection-close" class="close" aria-label="Close saved keepsakes">×</button></div><p class="caption">Your designs and orders, saved for this game.</p><div id="nexus-collection-list"></div></div></dialog>`);
   $('forge-close').onclick=closeForge;$('forge-dialog').addEventListener('cancel',e=>{e.preventDefault();closeForge();});
   const closeCollection=()=>{opening++;$('nexus-collection').close();callbacks.resume();};
   $('nexus-collection-close').onclick=closeCollection;$('nexus-collection').addEventListener('cancel',e=>{e.preventDefault();closeCollection();});
@@ -85,12 +103,16 @@ export function initForge(c) {
 }
 export async function openForge(config) {
   const current=++opening;observer?.abort();callbacks.pause();session=null;
+  document.querySelector('.simulation-banner').textContent='PREPARING YOUR KEEPSAKE';
   $('forge-error').hidden=true;$('forge-name').textContent=config.title;$('forge-body').textContent='Saving your design…';$('forge-trace').textContent='';$('forge-image').innerHTML='';$('forge-steps').innerHTML='';$('forge-phase').textContent='DESIGN';
   if(!$('forge-dialog').open)$('forge-dialog').showModal();
   const design={...structuredClone(config.design||{}),emblem:config.emblem||'sun',metal:config.metal||'#d4a742',referenceSvg:config.design?.referenceSvg||callbacks.preview(config.type,config.emblem,config.metal)};
   try {
+    const catalog = await client.catalog();
+    if (catalog.mode === 'live' && config.type !== 'pendant') design.referencePng = await rasterizeDesign(design.referenceSvg);
     const record=await client.createKeepsake({recipe:config.type,title:config.title,prompt:config.prompt,sourceEventId:config.sourceEventId||'studio-'+config.type,story:config.story||[],design});
     if(current!==opening)return;session=await client.getKeepsake(record.id);if(current!==opening)return;render();
+    if (!session.simulated && session.phase==='draft') { await generate(); return; }
     if(['pattern','product'].includes(session.phase))observe();
   }catch(error){if(current!==opening)return;showError(error);$('forge-body').innerHTML='<button id="forge-retry" class="primary">Try saving again</button>';$('forge-retry').onclick=()=>openForge(config);}
 }
@@ -103,3 +125,17 @@ export async function openCollection() {
   }catch(error){if(current===opening)$('nexus-collection-list').textContent=error.message;}
 }
 export function forgeSnapshot(){return session?{simulated:session.simulated,keepsakeId:session.id,gameId:session.gameId,phase:session.phase,type:session.type,quantity:session.quantity,orderStatus:session.order?.status||null}:null;}
+
+export async function supportedFormats() {
+  const catalog=await client.catalog();
+  if(catalog.mode!=='live') return null;
+  const match={scarf:/^scarves$/i,pillow:/^decorative pillows$/i,pendant:/^pendant necklace$/i,rug:/^rugs?$/i,plush:/^plush/i,trophy:/^troph/i};
+  return Object.keys(match).filter(type=>catalog.categories.items.some(category=>match[type].test(category.name)));
+}
+
+export async function openSavedKeepsake(id) {
+  const current=++opening;callbacks.pause();session=null;
+  $('forge-error').hidden=true;$('forge-dialog').showModal();$('forge-body').textContent='Loading keepsake…';
+  try{const record=await client.getKeepsake(id);if(current!==opening)return;session=record;render();if(['pattern','product'].includes(record.phase))observe();}
+  catch(error){if(current===opening)showError(error);}
+}

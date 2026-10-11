@@ -36,13 +36,17 @@ The saved reference is displayed as an image, not injected SVG markup. Editing t
 
 `GET /api/nexus/keepsakes` lists up to 50 recent records for the signed-in user and selected game. `GET /api/nexus/keepsakes/:id` reconciles generation. `POST /api/nexus/keepsakes` saves a design. POST actions beneath a keepsake include `generate`, `options`, `checkout`, `refresh-quote`, `pay-demo`, and `advance-demo`. The SDK supplies `X-Nexus-Game`; this is a demo game selector, not a trusted third-party tenant credential.
 
-## Simulation boundaries and live integration
+## Live provider
 
-The backend and database are real. The provider is a fixture. Demo jobs use persisted timestamps and reconcile on reads; there is no GPU generation, background Arcade polling, real payment, shipment, or royalty settlement. A closed browser does not lose job state. The next read resolves the simulated result. Availability of pendant, trophy, plush, materials, and every category/option must be verified through the live Arcade catalog.
+`nexus/providers/arcade.js` implements the real Arcade commerce API. Set `NEXUS_PROVIDER=live` and the server-only `ARCADE_API_KEY`. The local iOS demo uses the live provider. Hosted runtime values belong in native Sites environment settings, never in the manifest. The provider uses the account catalog, complete manufacturable defaults, real reference uploads, stable request IDs, job reconciliation, product previews/prices, hosted checkout, and upstream order confirmation. See [IOS-DEMO.md](../IOS-DEMO.md).
 
-Before shipping a live integration:
+## Simulation mode and remaining production work
 
-1. Add a server-only provider using the verified Arcade API contract, real reference uploads, async job polling/webhooks, product responses, and hosted checkout URLs. Provider hooks can be async. Do not expose credentials to games. Reuse stable request IDs only where the vendor supports idempotency; reconcile uncertain outcomes before retrying writes.
+The backend and database are real. `DemoProvider` is a fixture; `ArcadeProvider` makes real calls. Demo jobs use persisted timestamps and reconcile on reads; there is no GPU generation, background Arcade polling, real payment, shipment, or royalty settlement. A closed browser does not lose job state. The next read resolves the simulated result. Availability of pendant, trophy, plush, materials, and every category/option must be verified through the live Arcade catalog.
+
+For production beyond this demo:
+
+1. The server-only live provider, reference uploads, async polling, previews, and checkout are implemented. A background reconciler and signed webhooks remain future work; current reconciliation occurs on reads.
 2. Replace fixture recipes/catalog with supported categories and options. Preserve references, validate manufacturability, and show the actual product preview before purchase. A reference image is not a 3D asset or guaranteed exact manufacturing output.
 3. Verify signed events from each game's authoritative backend and establish authenticated studio/tenant registration before trusting external game IDs, achievements, or attribution. Current demos permit the signed-in player to submit their own design; they do not attest gameplay.
 4. Reconcile orders only through trusted vendor status/webhooks. Disable demo payment/fast-forward actions for live providers. Never mark a payment complete from a client assertion.

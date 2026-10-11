@@ -9,7 +9,7 @@ export class NexusClient {
       response = await this.fetcher(this.baseUrl + path, {
         method: input === undefined ? 'GET' : 'POST', credentials: 'same-origin',
         headers: {'X-Nexus-Game': this.gameId, ...(input === undefined ? {} : {'Content-Type': 'application/json'})},
-        body: input === undefined ? undefined : JSON.stringify(input), signal: AbortSignal.timeout(15000),
+        body: input === undefined ? undefined : JSON.stringify(input), signal: AbortSignal.timeout(120000),
       });
     } catch { throw new Error('Keepsake service is unavailable. Your design is still in the game; try again.'); }
     const body = await response.json();
@@ -27,7 +27,7 @@ export class NexusClient {
   refreshQuote(id) { return this.action(id, 'refresh-quote'); }
   completeDemoPayment(id) { return this.action(id, 'pay-demo'); }
   advanceDemoOrder(id, expectedStatus) { return this.action(id, 'advance-demo', {expectedStatus}); }
-  async waitForProduct(id, {onUpdate = () => {}, signal, timeoutMs = 65000} = {}) {
+  async waitForProduct(id, {onUpdate = () => {}, signal, timeoutMs = 15 * 60000} = {}) {
     const startedAt = Date.now(); let delay = 300;
     while (Date.now() - startedAt < timeoutMs) {
       if (signal?.aborted) throw new DOMException('Stopped observing', 'AbortError');
@@ -40,7 +40,7 @@ export class NexusClient {
         if (record.phase === 'failed') throw new Error(record.error);
         if (!['pattern', 'product'].includes(record.phase)) return record;
       }
-      await new Promise(resolve => setTimeout(resolve, delay)); delay = Math.min(2000, delay * 1.5);
+      await new Promise(resolve => setTimeout(resolve, delay)); delay = Math.min(record?.simulated ? 2000 : 5000, delay * 1.5);
     }
     throw new Error('Generation is taking longer than expected. Close and reopen to resume.');
   }
