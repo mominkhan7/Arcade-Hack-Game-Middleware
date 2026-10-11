@@ -1,42 +1,136 @@
-# Relic Island
+# ArcadeHack Game Middleware
 
-A mobile first 3D adventure built with Three.js. Move with the touch joystick or WASD / arrow keys. Walk into coins, solve the ancient echo, and return to the shrine to awaken a keepsake.
+Three playable experiences and **Nexus**, a shared middleware layer that turns a player's design or achievement into a saved keepsake and a physical-product commerce journey.
 
-Demo: three coins, one memory encounter, no timer and no coin loss. Explorer and Adventurer add longer journeys with 12 and 20 coins. Every mode keeps retrying friendly.
+This is an Arcade hackathon project exploring a simple idea: **the object is more meaningful when the player has a story behind it.** Games own the experience and capture the design; Nexus owns the reusable design-to-order lifecycle.
 
-The reward pendant photograph is an AI generated concept. Arcade generation, guaranteed pricing and checkout are not connected yet. No product or order is created by this prototype.
+## What we built and why
 
-## Local use
+| Experience | What the player does | What they keep | Purpose |
+| --- | --- | --- | --- |
+| **Relic Island** | Explore a 3D island, collect coins, solve a memory encounter, customize a character, and activate a shrine. An optional loom adds a pattern puzzle. | Journey rewards and personalized pendant, scarf, pillow, rug, and trophy concepts. | Demonstrate an adventure that gives a keepsake personal meaning. |
+| **Signal Garden** | Rotate nine circuit tiles to connect light from IN to OUT and choose a palette. | A scarf reference carrying the exact solved circuit. | Demonstrate a second game using the same middleware, with a clear relationship between achievement and design. |
+| **Pattern Garden** | Fly a luminous moth through a nighttime forest, collecting colors from water, flowers, and a violet grove. | Original abstract artwork derived from the flight, with PNG/SVG/JSON exports and optional physical keepsakes. | Explore player-authored generative art that has value before any purchase. |
 
-Run `npm run preview` and open http://127.0.0.1:4174/. Run `npm run check` for JavaScript syntax validation. The game assets remain in dist. The Nexus API runs on a Worker with persistent D1 storage; npm run build creates the deployment bundle.
+Relic Island includes Sun, Moon, Mountain, and Ocean worlds, touch and keyboard controls, forgiving retries, a short three-coin demo, and longer exploration modes. Pattern Garden includes navigation aids, touch controls, animated scenery, bloom, batched geometry, and adaptive rendering quality.
 
-## Keepsakes and character design
+## Nexus: the shared platform
 
-The reward trail progresses through 3, 6, 9 and 12 coins. At each milestone, return to the shrine to reveal the concept and continue to the next tier. Higher tiers appear only after continuing. Gold and platinum-look pendants, an island trophy and a woven rug are previews, not quoted products. Material and trophy availability require confirmation.
+All three games use an engine-neutral browser SDK and the same forge UI and backend:
 
-Use the character button at any time during exploration to change the explorer name, coat, skin, headwear, scarf color and pattern. Changes appear on the character and its scarf / illustrated pillow concepts. Save an SVG reference and copy the design brief to take to Arcade.
+```text
+Gameplay / player choices
+    -> immutable design + reference SVG + story
+    -> Nexus saved keepsake
+    -> product generation
+    -> quote + options
+    -> checkout
+    -> order + fulfillment tracking
+```
 
-An optional loom at the shore offers a tile rotation puzzle. Restore all mountain peaks and choose a palette to create a personalized rug reference. It does not add another required encounter to the three-coin demo.
+Nexus saves design snapshots, fingerprints designs, deduplicates repeated submissions, scopes collections to players and games, reconciles generation jobs, validates options and quote expiration, and guards order transitions. Editing a character after saving cannot alter an earlier keepsake. Payment retries return the existing order, and database version checks protect concurrent changes.
 
-Arcade's public catalog lists scarf, pillow cover, rug and jewelry categories. API access to specific categories has not been verified in this prototype. Plush toys, trophies and platinum materials remain exploratory concepts.
+Studio attribution is recorded. Revenue settlement, wallets, and payouts are not implemented.
 
-## Sigil worlds and shrine interaction
+## What is real and what is simulated
 
-Sun, Moon, Mountain and Ocean each change the terrain palette, scenery and starting outfit. Ocean has palms, Mountain has snowy peaks, and Moon has night lighting and fireflies. Sigils use original engraved line art across menus, coins and reward previews.
+**Implemented:** playable games, procedural 3D worlds, original deterministic artwork generation, design exports, shared SDK and forge, backend validation, persistent storage, saved collections, and lifecycle/state-transition logic.
 
-The shrine has a world marker and beacon. Entering its 2.8-unit interaction radius with enough coins changes guidance to "Shrine reached" and reveals an explicit activation button. The explorer's height follows the four platform surfaces, so feet stay above the steps. Shrine columns have collision while leaving the approach paths clear.
+**Simulated:** vendor product generation, catalog options, prices, taxes/shipping, hosted checkout, payment, manufacturing, fulfillment, and tracking. No Arcade API calls, payment credentials, real charges, or real orders are used.
 
-"Watch again" only replays the current echo sequence. It retains the player's coins and position.
+Pattern Garden's digital collectible is a local browser simulation. It has no blockchain transaction, contract, wallet, or physical redemption entitlement. Its digital art collection and draft flight are browser-local; physical keepsake records persist through Nexus.
 
-### Arcade simulation
-Milestone rewards and the character studio open a local physical-product flow: reference upload, pattern job, product job, example quote, hosted-checkout simulation, demo payment, and order tracking. The optional integration trace follows the documented request structure at https://docs.arcade.ai/quickstart. All prices, makers, options, category IDs, shipping, tax, orders and tracking are fixtures. The games call the Nexus backend, which saves design snapshots and simulated orders. No payment credentials or real orders are used. Pendant, trophy and plush category availability is unverified. Live integration must retrieve catalog categories/options and replace fixtures with actual API responses and checkout URLs.
+Product and material availability must be checked against a live catalog. Pendant, trophy, plush, and platinum concepts are exploratory. A reference is not a guarantee of exact manufacturing output.
 
-`npm run check` validates syntax, shrine footing and commerce contracts, totals and order transitions. Preview is served with `npm run preview`.
+## Run locally
 
-## Nexus integration
+Use **Node.js 22.13+** (or a newer release with `node:sqlite` and `DatabaseSync`) and npm.
 
-Relic Island now uses the reusable Nexus keepsake middleware. Saved designs, generated products, quotes, and demo orders survive closing the forge and reloading. Open Saved keepsakes from the start menu or the square collection button while playing. Game customization after saving cannot change a saved reference.
+```sh
+cd /Users/mominkhan/Desktop/ArcadeHack-Game-Middleware
+npm ci
+npm run preview
+```
 
-Signal Garden, available at `/signal-garden.html`, is a second playable circuit puzzle. Solve the nine-tile circuit and bring the exact pattern into a scarf using the same SDK, forge, and backend. Each game has its own collection.
+Open:
 
-See [Nexus implementation and integration guide](nexus/README.md) for architecture, API usage, simulation boundaries, and requirements before enabling live Arcade commerce.
+- Relic Island: http://127.0.0.1:4174/
+- Signal Garden: http://127.0.0.1:4174/signal-garden.html
+- Pattern Garden: http://127.0.0.1:4174/pattern-garden.html
+
+For another port:
+
+```sh
+NEXUS_PORT=4182 npm run preview
+```
+
+The preview binds to loopback and supplies a development player identity. SQLite records live in `.sites-runtime/nexus.sqlite`; migrations apply automatically on startup. This folder is ignored by Git. Browser-local artwork stays in the browser and origin where it was created; changing the hostname or port does not transfer it.
+
+## Development and validation
+
+```sh
+npm run check       # JavaScript syntax plus shrine, commerce, and Nexus tests
+npm run build       # Bundle the Worker, assets, hosting metadata, and migrations
+npm run db:generate # Generate a migration after changing the Drizzle schema
+```
+
+Append database migrations rather than modifying applied history.
+
+**Important:** `dist/` contains the editable game source and assets. Despite its name, it must stay in Git. Only `dist/server/` and `dist/.openai/` are generated deployment outputs. Do not delete `dist/` as a routine build cleanup.
+
+## Repository map
+
+```text
+README.md                    Whole-project context and setup
+RELIC-ISLAND.md               Adventure mechanics and reward details
+PATTERN-GARDEN.md             Art journey, controls, rendering, demo walkthrough
+ASSETS.md                    Asset provenance and concept boundaries
+dist/                        Browser game source, UI, SDK, and assets
+  game.js / world.js         Relic Island gameplay and world
+  keepsakes.js / sigils.js   Reward references and world symbols
+  signal-garden.*            Circuit puzzle
+  pattern-garden.*           Art journey and artifact UI
+  pattern-garden-world.js    Moth flight and forest rendering
+  garden-art.js              Deterministic SVG artwork renderer
+  nexus-client.js            Shared browser SDK
+  commerce.js                Shared forge UI
+nexus/                       Middleware API, service, recipes, provider, store
+  README.md                  Architecture, API usage, live-integration requirements
+  providers/demo.js          Simulated vendor implementation
+  stores/d1.js               Persistent database adapter
+  worker.js                  Hosted API and asset delivery
+db/schema.ts                 Drizzle schema
+drizzle/                     Checked-in migrations
+scripts/build.mjs            Deployment bundler
+preview.mjs                  Local games + API + SQLite server
+tests/                       Shrine, commerce, and middleware contract tests
+reference-assets/            Earlier generated 2D references, retained for context
+.openai/hosting.json         Existing Sites project configuration
+```
+
+## Presenter walkthrough
+
+1. **Relic Island:** choose a world, explore the short demo, collect three coins, solve the echo, and activate the shrine. Show customization and a reward's forge flow.
+2. **Signal Garden:** connect all nine tiles and show the solved circuit becoming a scarf reference through the same forge.
+3. **Pattern Garden:** fly through the living palettes, reveal the artwork, save or export it, and select a scarf, rug, or pillow cover.
+4. **Nexus:** reopen saved keepsakes and advance a demo order to show persistence and the shared lifecycle.
+
+The pitch: different games create different meaningful designs, while one reusable layer handles the path from design to commerce.
+
+## Hosting and the path to live Arcade
+
+The existing Sites configuration is retained. Hosted storage uses a Worker with a D1 `DB` binding and a Sites-authenticated player header. The API rejects unauthenticated requests and requires same-origin JSON mutations. This move does not create or publish a new Site.
+
+Before enabling real commerce:
+
+1. Implement a server-only Arcade provider with verified API contracts, uploads, asynchronous generation, actual product responses, and hosted checkout URLs.
+2. Retrieve supported catalog categories, materials, and options; show the actual generated preview before purchase.
+3. Establish authenticated studio registration and authoritative gameplay events before trusting external game achievements or attribution.
+4. Reconcile payment and fulfillment from trusted vendor events; disable demo payment and fulfillment controls.
+5. Confirm merchant, refunds, taxes, shipping, and any studio revenue-share arrangements.
+
+See [Nexus integration guide](nexus/README.md), [Relic Island guide](RELIC-ISLAND.md), [Pattern Garden guide](PATTERN-GARDEN.md), and [asset notes](ASSETS.md) for more detail.
+
+## Project home and Git
+
+The canonical local project home is `/Users/mominkhan/Desktop/ArcadeHack-Game-Middleware`. The original `relic-island` repository history is preserved in this folder. Dependencies, runtime data, generated deployment files, OS metadata, and environment secrets are excluded from version control. No remote repository is configured by this relocation.
