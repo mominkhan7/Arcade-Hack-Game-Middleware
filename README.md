@@ -133,4 +133,4 @@ See [Nexus integration guide](nexus/README.md), [Relic Island guide](RELIC-ISLAN
 
 ## Project home and Git
 
-The canonical local project home is `/Users/mominkhan/Desktop/ArcadeHack-Game-Middleware`. The original `relic-island` repository history is preserved in this folder. Dependencies, runtime data, generated deployment files, OS metadata, and environment secrets are excluded from version control. No remote repository is configured by this relocation.
+The canonical local project home is `/Users/mominkhan/Desktop/ArcadeHack-Game-Middleware`. The original `relic-island` repository history is preserved in this folder. Dependencies, runtime data, generated deployment files, OS metadata, and environment secrets are excluded from version control. The GitHub remote is [mominkhan7/Arcade-Hack-Game-Middleware](https://github.com/mominkhan7/Arcade-Hack-Game-Middleware), configured as `origin`. The main development branch is `main`.
