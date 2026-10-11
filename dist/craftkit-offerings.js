@@ -1,11 +1,12 @@
+import {jewelryPrompt} from './jewelry-design.js';
 import {matchArtwork} from './chess-art.js';
 import {journeyArt} from './garden-art.js';
 import {sigilSvg,sigils} from './sigils.js';
 // Game-ready design templates, independent of the vendor catalog and prices.
 const template=(id,category,title,trigger,transformation,formats,renderer,game)=>Object.freeze({id,category,title,trigger,transformation,formats:Object.freeze(formats),renderer,game});
 export const offerings=Object.freeze([
- template('achievement-emblem','accomplishment','Achievement emblem','A quest, level or personal milestone is completed.','The achievement becomes an engraved personal symbol.',['pendant'],'emblem','relic-island'),
- template('achievement-evolution','accomplishment','Evolving relic','A meaningful higher milestone is reached.','The same symbol gains intricate engraving as its story grows.',['pendant'],'emblem','relic-island'),
+ template('achievement-emblem','accomplishment','Achievement emblem','A quest, level or personal milestone is completed.','The achievement becomes a sculptural, textured talisman.',['pendant'],'emblem','relic-island'),
+ template('achievement-evolution','accomplishment','Evolving relic','A meaningful higher milestone is reached.','The same symbol evolves into layered filigree and intricate relief metalwork.',['pendant'],'emblem','relic-island'),
  template('match-victory','accomplishment','Match remembered','A match ends in a win, draw or hard-earned finish.','Actual moves become a composition that remembers the match.',['scarf','pillow'],'moves','chess-atelier'),
  template('collection-pattern','accomplishment','Collection mosaic','A collection or exploration chapter is completed.','Collected symbols become a repeating textile pattern.',['scarf','pillow'],'mosaic','relic-island'),
  template('personal-best','accomplishment','Personal best','The player beats their own best performance.','Their route becomes a unique flowing composition.',['scarf','pillow'],'journey','pattern-garden'),
@@ -41,7 +42,7 @@ export function buildOffering(id,input){
  const design=structuredClone(input.design||{}),activity=structuredClone(input.activity||{});
  const referenceSvg=design.referenceSvg||offeringArtwork(id,activity);
  if(typeof referenceSvg!=='string'||!referenceSvg.startsWith('<svg'))throw new Error('Provide original SVG artwork.');
- return {...input,type,title:input.title||o.title,prompt:input.prompt||`${o.transformation} Preserve the supplied artwork and composition. Use available catalog materials.`,
+ return {...input,type,title:input.title||o.title,prompt:input.prompt||(type==='pendant'?jewelryPrompt(design.sigil||design.emblem||activity.sigil||activity.emblem,id==='achievement-evolution'?'ornate':'classic'):`${o.transformation} Create a refined gallery-shop object with deliberate pattern scale and tactile material texture. Preserve the supplied artwork, colors and composition exactly; no added logos or generic game icons. Use available catalog materials.`),
   design:{...activity,...design,referenceSvg,craftkitOffering:{id,category:o.category,version:1},...(id==='achievement-evolution'?{pendantStyle:'ornate'}:{})},
   story:[...structuredClone(input.story||[]),{event:'craftkit-design-created',offering:id,category:o.category,sourceEventId:input.sourceEventId}]};
 }

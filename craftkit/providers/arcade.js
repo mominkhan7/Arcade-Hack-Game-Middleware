@@ -1,3 +1,4 @@
+import {jewelryPrompt} from '../../dist/jewelry-design.js';
 // Arcade commerce API: https://docs.arcade.ai/openapi.json
 // Credentials only exist on the server. No mocked prices or paid states.
 export class ArcadeError extends Error {
@@ -74,7 +75,8 @@ export class ArcadeProvider {
     let prompt = record.prompt;
     if (record.world === 'jewelry') {
       const emblem = record.design.emblem || 'sun';
-      prompt = `A pendant necklace inspired by an earned ${emblem} relic. ${prompt} Engraved ${emblem} emblem on a small round coin pendant. ${Object.entries(record.selections).map(([k,v])=>`${k}: ${v}`).join(', ')}.`.slice(0, 1000);
+      const selections=Object.entries(record.selections).map(([k,v])=>`${k}: ${v}`).join(', ');
+      prompt = `Selected product options: ${selections}. ${prompt||jewelryPrompt(emblem,record.design.pendantStyle)} Wearable sculptural ${emblem} jewelry; preserve the requested silhouette, relief and texture. Use only supported selected materials.`.slice(0, 1000);
     }
     const input = {requestId: this.requestId(record, 'pattern'), prompt, ...(record.world === 'jewelry' ? {categoryId: record.categoryId} : {referenceIds: [await this.reference(record)], ...this.style(record.design)})};
     record.job = await this.call('/patterns/create', input);

@@ -51,7 +51,7 @@ test('live jewelry goes directly through patterns.create with no unsupported ref
  await s.service.act('player','relic-island',r.id,'generate');
  assert.equal((await s.service.get('player','relic-island',r.id)).phase,'quote');
  const input=s.calls.find(c=>c.endpoint==='/patterns/create').body;
- assert.equal(input.categoryId,'cat-live');assert.equal(input.referenceIds,undefined);assert.match(input.prompt,/ocean/);
+ assert.equal(input.categoryId,'cat-live');assert.equal(input.referenceIds,undefined);assert.match(input.prompt,/ocean/);assert.doesNotMatch(input.prompt,/small round coin/);
  assert.equal(s.calls.some(c=>c.endpoint==='/products/create'),false);
 });
 test('only upstream paid order advances live checkout; failures never fall back to demo',async()=>{
@@ -110,4 +110,11 @@ test('CraftKit keeps in-flight Arcade request IDs stable across the rename', () 
   assert.equal(provider.requestId({...legacy,requestNamespace:'craftkit'},'checkout-1'),'craftkit-'+'a'.repeat(48)+'-2-1-checkout-1');
   assert.equal(configuredProvider({NEXUS_PROVIDER:'live',ARCADE_API_KEY:'test-key'}).mode,'live');
   assert.equal(configuredProvider({CRAFTKIT_PROVIDER:'simulated',NEXUS_PROVIDER:'live'}).mode,'simulated');
+});
+
+test('the jewelry request preserves elaborate art direction instead of forcing the object into a coin',async()=>{
+ const s=setup({world:'jewelry'});const prompt='Sculptural ocean relic with pierced tidal channels, tactile shell ridges, openwork filigree and a carved bail.';
+ const r=await s.service.create('player','relic-island',{...s.input,prompt,design:{...s.input.design,pendantStyle:'ornate'}});
+ await s.service.act('player','relic-island',r.id,'generate');const request=s.calls.find(c=>c.endpoint==='/patterns/create').body;
+ assert.ok(request.prompt.includes(prompt));assert.match(request.prompt,/Selected product options/);assert.doesNotMatch(request.prompt,/small round coin|printed emblem/);assert.ok(request.prompt.length<=1000);assert.equal(request.referenceIds,undefined);
 });

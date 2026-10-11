@@ -8,7 +8,7 @@ import {initMatchCheckout} from './match-checkout.js';
 import {MoveArt,CLASSICS} from './move-art.js';
 import {PALETTES,paletteById} from './marbling.js';
 const $=id=>document.getElementById(id);
-const chess=new Chess();let selected=null,busy=false,paused=false,nativePaused=false,pending=null,aiTimer,matchId,mode='computer';
+const chess=new Chess();let selected=null,busy=false,paused=true,started=false,nativePaused=false,pending=null,aiTimer,matchId,mode='computer';
 try{const saved=JSON.parse(localStorage.getItem('craftkit-chess-match') || localStorage.getItem('nexus-chess-match'));if(saved?.pgn)chess.loadPgn(saved.pgn);matchId=saved?.id;mode=saved?.mode==='friend'?'friend':'computer';}catch{chess.reset();}
 matchId ||= crypto.randomUUID();$('mode').value=mode;
 // The player's poured board (Board Studio): shown under play, and carried into the keepsake.
@@ -114,14 +114,14 @@ function render(){
   else if(chess.isCheck())status+=(chess.turn()==='w'?' White':' Black')+' is in check.';
   $('status').textContent=status;$('opponent').textContent=mode==='computer'?'The Atelier':'Your friend';$('opponent-detail').textContent=mode==='computer'?'Computer · a gentle challenge':'Pass & play · black pieces';
   $('match-preview').innerHTML=matchArtwork(history,boardArt);art.sync(history);$('match-format').disabled=history.length<4;$('move-count').textContent=Math.ceil(history.length/2)+(history.length>2?' moves':' move');
-  $('keep-match').disabled=history.length<4;$('keep-match').innerHTML=history.length<4?'Play 2 moves each to make your keepsake <span>↗</span>':'Keep this painting <span>↗</span>';
-  $('finish-match').disabled=history.length<4;$('finish-match').textContent=chess.isGameOver()?'Keep this match ↗':'Finish & keep ↗';
+  $('keep-match').disabled=history.length<4;$('keep-match').innerHTML=history.length<4?'Play 2 moves each to make your keepsake <span>↗</span>':'Shop this painting <span>↗</span>';
+  $('finish-match').disabled=history.length<4;$('finish-match').textContent=chess.isGameOver()?'Shop this match':'Finish & shop';
   $('history-empty').hidden=history.length>0;$('undo').disabled=history.length===0||busy;
   $('history').innerHTML=Array.from({length:Math.ceil(history.length/2)},(_,i)=>`<li><span>${i+1}.</span><span>${history[i*2]?.san||''}</span><span>${history[i*2+1]?.san||'—'}</span></li>`).join('');$('history').scrollTop=$('history').scrollHeight;
   persist();
 }
 function tap(square){
-  if(replaying||busy||paused||nativePaused||chess.isGameOver()||mode==='computer'&&chess.turn()==='b')return;
+  if(!started||replaying||busy||paused||nativePaused||chess.isGameOver()||mode==='computer'&&chess.turn()==='b')return;
   const options=selected?chess.moves({square:selected,verbose:true}).filter(m=>m.to===square):[];
   if(options.length){if(options.some(m=>m.promotion)){pending={from:selected,to:square};$('promotion-options').innerHTML=['q','r','b','n'].map(p=>`<button data-promote="${p}" aria-label="Promote to ${{q:'queen',r:'rook',b:'bishop',n:'knight'}[p]}">${pieceSvg(p,chess.turn(),'promotion-'+p)}</button>`).join('');document.querySelectorAll('[data-promote]').forEach(b=>b.onclick=()=>{$('promotion').close();play({...pending,promotion:b.dataset.promote});pending=null;});$('promotion').showModal();return;}play({from:selected,to:square});return;}
   const piece=chess.get(square);selected=piece?.color===chess.turn()?(selected===square?null:square):null;render();
@@ -140,11 +140,15 @@ function performMove(move) {
 }
 function play(move){performMove(move);scheduleComputer(true);}
 function scheduleComputer(skipRender=false){
-  clearTimeout(aiTimer);if(mode!=='computer'||chess.turn()!=='b'||chess.isGameOver()||paused||nativePaused){busy=false;return;}
+  clearTimeout(aiTimer);if(!started||mode!=='computer'||chess.turn()!=='b'||chess.isGameOver()||paused||nativePaused){busy=false;return;}
   busy=true;if(!skipRender)render();aiTimer=setTimeout(()=>{const move=chooseMove(chess,2);if(move)performMove(move);else{busy=false;render();}},650);
 }
 $('undo').onclick=()=>{clearTimeout(aiTimer);stopReplay();chess.undo();if(mode==='computer'&&chess.turn()==='b')chess.undo();selected=null;busy=false;render();scheduleComputer();};
-$('new-game').onclick=()=>$('reset-match').showModal();$('reset-cancel').onclick=()=>$('reset-match').close();$('reset-confirm').onclick=()=>{clearTimeout(aiTimer);stopReplay();chess.reset();matchId=crypto.randomUUID();selected=null;busy=false;$('reset-match').close();render();};
+function requestNewMatch(){paused=true;clearTimeout(aiTimer);busy=false;$('reset-match').showModal();}
+$('new-game').onclick=requestNewMatch;$('start-new-match').onclick=requestNewMatch;
+$('reset-cancel').onclick=()=>$('reset-match').close();
+$('reset-match').addEventListener('close',()=>{paused=!started;scheduleComputer();});
+$('reset-confirm').onclick=()=>{clearTimeout(aiTimer);stopReplay();chess.reset();matchId=crypto.randomUUID();selected=null;busy=false;if($('chess-start').open){mode=$('start-mode').value;$('mode').value=mode;$('chess-start').close();}started=true;paused=false;$('reset-match').close();window.scrollTo(0,0);render();};
 $('mode').onchange=()=>{mode=$('mode').value;render();scheduleComputer();};
 $('saved').onclick=openCollection;
 $('export-match').onclick=()=>{const data=chess.pgn(),name='chess-atelier-'+matchId.slice(0,8)+'.pgn';if(window.webkit?.messageHandlers?.craftkitExport){const base64=btoa(data);window.webkit.messageHandlers.craftkitExport.postMessage({filename:name,base64});return;}const url=URL.createObjectURL(new Blob([data],{type:'application/x-chess-pgn'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
@@ -173,6 +177,13 @@ classics.querySelectorAll('[data-classic]').forEach(b=>b.onclick=async()=>{
   if(run===replayRun)replaying=false;render();
 });
 addEventListener('craftkit-native-pause',e=>{nativePaused=!!e.detail.paused;if(nativePaused){clearTimeout(aiTimer);busy=false;}else scheduleComputer();});
-render();scheduleComputer();
+// Opening the game never resets a saved match or starts the computer behind the launch screen.
+$('start-mode').value=mode;
+$('start-new-match').hidden=chess.history().length===0;
+if(chess.history().length){$('begin-chess').textContent='Continue match';$('chess-start-heading').textContent='Your next move awaits.';}
+$('chess-start').addEventListener('cancel',e=>e.preventDefault());
+$('begin-chess').onclick=()=>{mode=$('start-mode').value;$('mode').value=mode;started=true;paused=false;$('chess-start').close();window.scrollTo(0,0);render();scheduleComputer();feedback('light');};
+if(chess.isGameOver()){$('chess-start-heading').textContent='Your match, complete.';$('begin-chess').textContent='View match';}
+render();window.scrollTo(0,0);$('chess-start').showModal();
 
 $('export-art').onclick=()=>{const data=matchArtwork(chess.history({verbose:true})),filename='chess-art-'+matchId.slice(0,8)+'.svg';if(window.webkit?.messageHandlers?.craftkitExport){window.webkit.messageHandlers.craftkitExport.postMessage({filename,base64:btoa(unescape(encodeURIComponent(data)))});return;}const url=URL.createObjectURL(new Blob([data],{type:'image/svg+xml'})),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
