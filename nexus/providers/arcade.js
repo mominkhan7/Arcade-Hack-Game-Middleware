@@ -19,7 +19,9 @@ export class ArcadeProvider {
     }); } catch { throw new ArcadeError('Arcade is temporarily unreachable. Your design is saved; retry to resume.'); }
     if (!response.ok) {
       // Never return upstream bodies, signed URLs, or credentials in errors.
-      throw new ArcadeError(response.status === 401 ? 'Arcade authentication failed.' : response.status === 429 ? 'Arcade is busy. Try again shortly.' : `Arcade could not complete this step (HTTP ${response.status}).`, response.status === 404 ? 404 : [429,500,502,503,504].includes(response.status) ? 503 : response.status === 401 ? 502 : 422);
+      const error = new ArcadeError(response.status === 401 ? 'Arcade authentication failed.' : response.status === 429 ? 'Arcade is busy. Try again shortly.' : `Arcade could not complete this step (HTTP ${response.status}).`, response.status === 404 ? 404 : [429,500,502,503,504].includes(response.status) ? 503 : response.status === 401 ? 502 : 422);
+      error.upstream = response.status;
+      throw error;
     }
     return response.json();
   }
@@ -58,6 +60,15 @@ export class ArcadeProvider {
     record.referenceId = reference.referenceId;
     return record.referenceId;
   }
+  // A game may choose an Arcade style model (models/list) and its palette, e.g. a marbling model
+  // for a poured board. Print patterns only; jewelry accepts neither.
+  style(design = {}) {
+    const style = {};
+    if (typeof design.modelId === 'string' && /^[a-z0-9-]{1,64}$/.test(design.modelId)) style.modelId = design.modelId;
+    const colors = Array.isArray(design.colors) ? design.colors.filter(c => typeof c === 'string' && /^#[0-9A-Fa-f]{6}$/.test(c)).slice(0, 10) : [];
+    if (colors.length) style.colors = colors;
+    return style;
+  }
   async start(record, now) {
     if (record.phase === 'failed') record.attempt = (record.attempt || 0) + 1;
     let prompt = record.prompt;
@@ -65,7 +76,7 @@ export class ArcadeProvider {
       const emblem = record.design.emblem || 'sun';
       prompt = `A pendant necklace inspired by an earned ${emblem} relic. ${prompt} Engraved ${emblem} emblem on a small round coin pendant. ${Object.entries(record.selections).map(([k,v])=>`${k}: ${v}`).join(', ')}.`.slice(0, 1000);
     }
-    const input = {requestId: this.requestId(record, 'pattern'), prompt, ...(record.world === 'jewelry' ? {categoryId: record.categoryId} : {referenceIds: [await this.reference(record)]})};
+    const input = {requestId: this.requestId(record, 'pattern'), prompt, ...(record.world === 'jewelry' ? {categoryId: record.categoryId} : {referenceIds: [await this.reference(record)], ...this.style(record.design)})};
     record.job = await this.call('/patterns/create', input);
     record.phase = 'pattern'; record.error = null; record.generation = {startedAt: now};
     record.trace.push({endpoint: '/patterns/create', jobId: record.job.jobId, simulated: false});
@@ -92,7 +103,17 @@ export class ArcadeProvider {
         if (!record.job.result.productId) throw new ArcadeError('Arcade did not return the jewelry product.');
         record.productId = record.job.result.productId;
       } else {
-        record.job = await this.call('/products/create', {requestId: this.requestId(record, 'product'), patternId: record.patternId, categoryId: record.categoryId, selections: record.selections, fit: {mode: 'fill'}});
+        // Arcade answers 409 while it is still starting a request with this requestId. Usually the next poll
+        // replays it and receives the job; if the 409 persists past 30 s, Arcade's guidance is a new requestId.
+        const suffix = record.productRetry ? `product-r${record.productRetry}` : 'product';
+        try { record.job = await this.call('/products/create', {requestId: this.requestId(record, suffix), patternId: record.patternId, categoryId: record.categoryId, selections: record.selections, fit: {mode: 'fill'}}); }
+        catch (error) {
+          if (error.upstream !== 409) throw error;
+          if (!record.productStuckSince) { record.productStuckSince = now; return true; }
+          if (now - record.productStuckSince < 30000) return false;
+          record.productRetry = (record.productRetry || 0) + 1; record.productStuckSince = now; return true;
+        }
+        delete record.productStuckSince;
         record.phase = 'product'; return true;
       }
     } else record.productId = record.job.result?.productId;

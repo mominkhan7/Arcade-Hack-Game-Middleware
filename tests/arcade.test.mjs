@@ -70,3 +70,34 @@ test('stable request ids make retrying an uncertain generation safe',async()=>{
  assert.equal(s.calls.filter(c=>c.endpoint==='/patterns/create')[1].body.requestId,first);assert.ok(first.length<=128);
  r.phase='failed';await s.provider.start(r,1000);assert.notEqual(s.calls.filter(c=>c.endpoint==='/patterns/create')[2].body.requestId,first);
 });
+test('a game-chosen style model and palette reach patterns/create, and invalid ones are dropped',async()=>{
+ const s=setup();
+ const input={...s.input,design:{...s.input.design,modelId:'nonpareil-hand-marbled',colors:['#3A2A22','#A65A44','not-a-color']}};
+ const r=await s.service.create('player','chess-atelier',input);
+ await s.service.act('player','chess-atelier',r.id,'generate');
+ const pattern=s.calls.find(c=>c.endpoint==='/patterns/create').body;
+ assert.equal(pattern.modelId,'nonpareil-hand-marbled');
+ assert.deepEqual(pattern.colors,['#3A2A22','#A65A44']);
+ const plain=setup();const p=await plain.service.create('player','relic-island',plain.input);
+ await plain.service.act('player','relic-island',p.id,'generate');
+ const body=plain.calls.find(c=>c.endpoint==='/patterns/create').body;
+ assert.equal(body.modelId,undefined);assert.equal(body.colors,undefined);
+});
+test('a product request stuck on 409 is retried with a new requestId after 30 seconds',async()=>{
+ const seen=[];let clock=1000;
+ const fetcher=async(url,options)=>{
+  const endpoint=new URL(url).pathname.replace('/v1','');
+  if(options.method==='PUT')return new Response('');
+  const body=JSON.parse(options.body);
+  if(endpoint==='/products/create'){seen.push(body.requestId);return body.requestId.endsWith('-product')?Response.json({},{status:409}):Response.json({jobId:'job-product',status:'running'});}
+  const category={categoryId:'cat',name:'Scarves',world:'print'};
+  return Response.json({'/categories/list':{items:[category]},'/categories/get':{...category,options:[],selections:{},canManufacture:true},'/references/createUpload':{uploadId:'u',uploadUrl:'https://upload.example/x',requiredHeaders:{}},'/references/create':{referenceId:'ref'},'/patterns/create':{jobId:'job-pattern',status:'running'},'/jobs/get':{jobId:'job-pattern',status:'succeeded',result:{patternId:'pat'}}}[endpoint]);
+ };
+ const p=new ArcadeProvider({apiKey:'k',fetcher});
+ const record={id:'ks_'+'a'.repeat(60),revision:0,attempt:0,phase:'pattern',world:'print',categoryId:'cat',selections:{},job:{jobId:'job-pattern'},trace:[]};
+ assert.equal(await p.reconcile(record,clock),true);assert.equal(record.phase,'pattern');
+ assert.equal(await p.reconcile(record,clock+10000),false);
+ assert.equal(await p.reconcile(record,clock+31000),true);assert.equal(record.productRetry,1);
+ assert.equal(await p.reconcile(record,clock+32000),true);assert.equal(record.phase,'product');
+ assert.ok(seen.at(-1).endsWith('-product-r1'));
+});

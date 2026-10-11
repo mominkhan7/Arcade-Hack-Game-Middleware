@@ -23,8 +23,13 @@ struct Game: Identifiable {
 struct NexusGlass: ViewModifier {
     var radius: CGFloat = 24
     func body(content: Content) -> some View {
+        // glassEffect only exists in the iOS 26 SDK (Swift 6.2+); older Xcode builds use the material fallback.
+        #if compiler(>=6.2)
         if #available(iOS 26.0, *) {content.glassEffect(.regular, in: RoundedRectangle(cornerRadius: radius))}
         else {content.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: radius))}
+        #else
+        content.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: radius))
+        #endif
     }
 }
 struct ArcadeHome: View {
