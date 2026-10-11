@@ -14,7 +14,7 @@ export class ArcadeProvider {
   async call(endpoint, input) {
     let response;
     try { response = await this.fetcher('https://platform.arcade.ai/v1' + endpoint, {
-      method: 'POST', headers: {Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json', 'User-Agent': 'NexusKeepsakes/1.0'},
+      method: 'POST', headers: {Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json', 'User-Agent': 'CraftKitKeepsakes/1.0'},
       body: JSON.stringify(input), signal: AbortSignal.timeout(25000), redirect: 'error',
     }); } catch { throw new ArcadeError('Arcade is temporarily unreachable. Your design is saved; retry to resume.'); }
     if (!response.ok) {
@@ -44,7 +44,7 @@ export class ArcadeProvider {
     record.item.options = this.options(details);
     return details.selections;
   }
-  requestId(record, stage) { return `nexus-${record.id.slice(3, 51)}-${record.revision}-${record.attempt || 0}-${stage}`; }
+  requestId(record, stage) { return `${record.requestNamespace === 'craftkit' ? 'craftkit' : 'nexus'}-${record.id.slice(3, 51)}-${record.revision}-${record.attempt || 0}-${stage}`; }
   async reference(record) {
     if (record.referenceId) return record.referenceId;
     // An app may inject its own model; it must return a PNG data URL.

@@ -5,7 +5,7 @@ import {PALETTES, paletteById, isLight, MarbleRenderer, Tray, renderImage, nextF
 import {pieceSvg} from './chess-pieces.js';
 import {feedback} from './tactile.js';
 
-const KEY = 'nexus-chess-board';
+const KEY = 'craftkit-chess-board';
 const TOOLS = [
   {id: 'drop', title: 'Drop', hint: 'Tap to float ink. Hold to let it spread.'},
   {id: 'swirl', title: 'Swirl', hint: 'Drag through the water to pull the ink.'},
@@ -50,7 +50,7 @@ export function boardLook(board) {
 /** The saved board, or null for the classic board. */
 export function loadBoard() {
   try {
-    const saved = JSON.parse(localStorage.getItem(KEY));
+    const saved = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem('nexus-chess-board'));
     if (saved && Array.isArray(saved.ops) && saved.ops.length) {
       const palette = paletteById(saved.palette ?? saved.paletteId);
       return {palette: palette.id === 'custom' ? palette : {id: palette.id}, ops: saved.ops, style: normalizeStyle(saved.style)};

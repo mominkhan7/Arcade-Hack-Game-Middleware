@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Chess,chooseMove} from '../dist/chess-engine.js';
 import {matchArtwork} from '../dist/chess-art.js';
-import {games} from '../nexus/recipes.js';
+import {games} from '../craftkit/recipes.js';
 test('chess rejects illegal moves, recognizes checkmate, and restores persisted matches',()=>{
   const chess=new Chess();assert.throws(()=>chess.move('e5'));for(const move of ['f3','e5','g4','Qh4#'])chess.move(move);assert.ok(chess.isCheckmate());const restored=new Chess();restored.loadPgn(chess.pgn());assert.equal(restored.fen(),chess.fen());assert.ok(restored.isCheckmate());
 });

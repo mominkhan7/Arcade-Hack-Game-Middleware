@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-<key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Nexus game</string><key>CFBundleURLSchemes</key><array><string>nexusarcade</string></array></dict></array>
-<key>CFBundleDisplayName</key><string>Nexus Arcade</string>
+<key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>CraftKit game</string><key>CFBundleURLSchemes</key><array><string>craftkit</string><string>nexusarcade</string></array></dict></array>
+<key>CFBundleDisplayName</key><string>CraftKit</string>
 <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
 <key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
@@ -11,8 +11,8 @@
 <key>CFBundleVersion</key><string>1</string>
 <key>UILaunchScreen</key><dict/>
 <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
-<key>NSLocalNetworkUsageDescription</key><string>Connect to the Nexus demo server on your Mac to play and create keepsakes.</string>
+<key>NSLocalNetworkUsageDescription</key><string>Connect to the CraftKit demo server on your Mac to play and create keepsakes.</string>
 <key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/><key>NSAllowsArbitraryLoadsInWebContent</key><true/></dict>
-<key>NexusDemoServer</key><string>$(NEXUS_DEMO_SERVER)</string>
-<key>NexusDemoToken</key><string>$(NEXUS_DEMO_TOKEN)</string>
+<key>CraftKitDemoServer</key><string>$(CRAFTKIT_DEMO_SERVER)</string>
+<key>CraftKitDemoToken</key><string>$(CRAFTKIT_DEMO_TOKEN)</string>
 </dict></plist>

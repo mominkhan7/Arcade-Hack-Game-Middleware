@@ -2,14 +2,14 @@ import {feedback} from './tactile.js';
 import {pieceSvg} from './chess-pieces.js';
 import {Chess,chooseMove} from './chess-engine.js';
 import {matchArtwork} from './chess-art.js';
-import {initForge,openForge,openCollection,supportedFormats} from './commerce.js';
+import {initForge,openForge,openCollection,supportedFormats,openOffering} from './commerce.js';
 import {initBoardStudio,loadBoard,boardImage,boardLook} from './board-studio.js';
 import {initMatchCheckout} from './match-checkout.js';
 import {MoveArt,CLASSICS} from './move-art.js';
 import {PALETTES,paletteById} from './marbling.js';
 const $=id=>document.getElementById(id);
 const chess=new Chess();let selected=null,busy=false,paused=false,nativePaused=false,pending=null,aiTimer,matchId,mode='computer';
-try{const saved=JSON.parse(localStorage.getItem('nexus-chess-match'));if(saved?.pgn)chess.loadPgn(saved.pgn);matchId=saved?.id;mode=saved?.mode==='friend'?'friend':'computer';}catch{chess.reset();}
+try{const saved=JSON.parse(localStorage.getItem('craftkit-chess-match') || localStorage.getItem('nexus-chess-match'));if(saved?.pgn)chess.loadPgn(saved.pgn);matchId=saved?.id;mode=saved?.mode==='friend'?'friend':'computer';}catch{chess.reset();}
 matchId ||= crypto.randomUUID();$('mode').value=mode;
 // The player's poured board (Board Studio): shown under play, and carried into the keepsake.
 let board=null,boardArt=null;
@@ -22,14 +22,14 @@ function applyBoard(next){
 }
 // The board surface: painted live by the match's own moves (the hero), the player's pour, or classic wood.
 const store=(key,value)=>{try{value===undefined?0:localStorage.setItem(key,value);return localStorage.getItem(key);}catch{return null;}};
-let surface=store('nexus-chess-surface')||'painted';
+let surface=store('craftkit-chess-surface')||'painted';
 // The match's inks: a palette id, or the player's own colors (saved as JSON).
-const savedInks=(()=>{const v=store('nexus-chess-art-palette');try{return v?.startsWith('{')?JSON.parse(v):v;}catch{return null;}})();
+const savedInks=(()=>{const v=store('craftkit-chess-art-palette');try{return v?.startsWith('{')?JSON.parse(v):v;}catch{return null;}})();
 const art=new MoveArt(savedInks||'atelier');
 try{art.attach($('board-art'));art.attach($('match-art-canvas'));}catch{surface=surface==='painted'?'classic':surface;}
 function applySurface(next){
   if(next==='poured'&&!board){studio.open();return;}
-  if(next)surface=store('nexus-chess-surface',next);
+  if(next)surface=store('craftkit-chess-surface',next);
   if(surface==='poured'&&!board)surface='painted';
   const el=$('chess-board'),frame=document.querySelector('.board-frame');
   el.classList.toggle('painted',surface==='painted');el.classList.toggle('marbled',surface==='poured');
@@ -48,7 +48,7 @@ const markPalette=()=>{
   const [blackPieces,whitePieces,whitePawns,blackPawns]=art.palette.inks.map(([,h])=>h);
   $('ink-colors').querySelector('i').style.background=`conic-gradient(${whitePieces} 0 25%,${whitePawns} 0 50%,${blackPieces} 0 75%,${blackPawns} 0)`;
 };
-function setInks(palette){art.setPalette(palette);store('nexus-chess-art-palette',art.palette.id==='custom'?JSON.stringify(art.palette):art.palette.id);markPalette();inkSheet?.sync();}
+function setInks(palette){art.setPalette(palette);store('craftkit-chess-art-palette',art.palette.id==='custom'?JSON.stringify(art.palette):art.palette.id);markPalette();inkSheet?.sync();}
 document.querySelectorAll('[data-art-palette]').forEach(b=>b.onclick=()=>{setInks(b.dataset.artPalette);feedback('light');});
 // Ink colors: choose a palette or pick each side's ink, previewed live on this match.
 const INK_ROLES=[['White pieces',1],['White pawns',2],['Black pieces',0],['Black pawns',3],['Capture splash',4],['Paper','paper']];
@@ -87,7 +87,7 @@ const result=()=>chess.isCheckmate()?'checkmate':chess.isStalemate()?'stalemate'
 function artSvg(){return `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720"><image href="${art.image(768)}" width="720" height="720" preserveAspectRatio="none"/></svg>`;}
 function keepsakeFor(kind){
   const history=chess.history({verbose:true}),n=history.length;
-  return {title:'Chess Atelier / '+n+' moves, painted',sourceEventId:'match-'+matchId+'-'+n+'-painted',
+  return {offering:chess.isGameOver()?'match-victory':'move-art',type:kind,title:'Chess Atelier / '+Math.ceil(n/2)+' moves, painted',sourceEventId:'match-'+matchId+'-'+n+'-painted',
     prompt:'Hand-marbled paper whose ink trails were made by the moves of a chess match: every piece began as a drop of ink and dragged its color across the water each time it moved. Keep the composition, the trails, the drops and the colors of the attached reference. Real pigment on paper with fine feathered detail. No chessboard, no chess pieces, no logos or text.',
     design:{referenceSvg:artSvg(),pgn:chess.pgn(),fen:chess.fen(),moves:history.map(m=>({from:m.from,to:m.to,color:m.color,san:m.san})),modelId:'nonpareil-hand-marbled',colors:art.palette.inks.map(([,h])=>h),artPalette:art.palette.name},
     story:[{event:'chess-match',moves:n,result:result(),painted:true}]};
@@ -97,12 +97,12 @@ const matchCheckout=initMatchCheckout({gameId:'chess-atelier',pause(){paused=tru
 function openKeep(outcome){
   const n=chess.history().length;if(n<4)return;
   const history=chess.history({verbose:true});
-  matchCheckout.open({matchKey:matchId+'-'+n+'-'+art.palette.id,result:outcome,subtitle:`${Math.ceil(n/2)} moves, painted by the pieces themselves. Keep it as something real.`,keepsake:keepsakeFor,
+  matchCheckout.open({preferred:$('match-format').value,matchKey:matchId+'-'+n+'-'+art.palette.id,result:outcome,subtitle:`${Math.ceil(n/2)} moves, painted by the pieces themselves. Keep it as something real.`,keepsake:keepsakeFor,
     paint(canvas){sheetArt||=(()=>{const a=new MoveArt(art.palette);a.attach(canvas);return a;})();sheetArt.setPalette(art.palette);return sheetArt.replay(history,{msPerMove:Math.min(380,Math.max(120,8000/n))});}});
 }
 $('design-board').onclick=()=>studio.open();
 applyBoard(loadBoard());
-const persist=()=>{try{localStorage.setItem('nexus-chess-match',JSON.stringify({id:matchId,pgn:chess.pgn(),mode}));}catch{}};
+const persist=()=>{try{localStorage.setItem('craftkit-chess-match',JSON.stringify({id:matchId,pgn:chess.pgn(),mode}));}catch{}};
 function render(){
   const history=chess.history({verbose:true}),last=history.at(-1),legal=selected?chess.moves({square:selected,verbose:true}):[];
   $('chess-board').innerHTML=chess.board().flatMap((row,r)=>row.map((p,c)=>{const square=String.fromCharCode(97+c)+(8-r),allowed=legal.some(m=>m.to===square);return `<button data-square="${square}" class="square ${(r+c)%2?'dark':''} ${selected===square?'selected':''} ${last&&(last.from===square||last.to===square)?'last':''} ${allowed?'legal':''} ${p?.type==='k'&&p.color===chess.turn()&&chess.isCheck()?'check':''}" aria-label="${square}${p?', '+(p.color==='w'?'white':'black')+' '+({p:'pawn',k:'king',q:'queen',r:'rook',b:'bishop',n:'knight'})[p.type]:', empty'}${allowed?', legal destination':''}" aria-pressed="${selected===square}">${p?`<span class="piece ${p.color==='w'?'white':'black'}" aria-hidden="true">${pieceSvg(p.type,p.color,square)}</span>`:''}${c===0?`<span class="coord" style="top:3px;bottom:auto">${8-r}</span>`:''}${r===7?`<span class="coord" style="left:auto;right:4px">${String.fromCharCode(97+c)}</span>`:''}</button>`;})).join('');
@@ -113,7 +113,7 @@ function render(){
   else if(chess.isDraw())status='Match drawn. Your moves still made something unique.';
   else if(chess.isCheck())status+=(chess.turn()==='w'?' White':' Black')+' is in check.';
   $('status').textContent=status;$('opponent').textContent=mode==='computer'?'The Atelier':'Your friend';$('opponent-detail').textContent=mode==='computer'?'Computer · a gentle challenge':'Pass & play · black pieces';
-  $('match-preview').innerHTML=matchArtwork(history,boardArt);art.sync(history);$('move-count').textContent=Math.ceil(history.length/2)+(history.length>2?' moves':' move');
+  $('match-preview').innerHTML=matchArtwork(history,boardArt);art.sync(history);$('match-format').disabled=history.length<4;$('move-count').textContent=Math.ceil(history.length/2)+(history.length>2?' moves':' move');
   $('keep-match').disabled=history.length<4;$('keep-match').innerHTML=history.length<4?'Play 2 moves each to make your keepsake <span>↗</span>':'Keep this painting <span>↗</span>';
   $('finish-match').disabled=history.length<4;$('finish-match').textContent=chess.isGameOver()?'Keep this match ↗':'Finish & keep ↗';
   $('history-empty').hidden=history.length>0;$('undo').disabled=history.length===0||busy;
@@ -147,7 +147,7 @@ $('undo').onclick=()=>{clearTimeout(aiTimer);stopReplay();chess.undo();if(mode==
 $('new-game').onclick=()=>$('reset-match').showModal();$('reset-cancel').onclick=()=>$('reset-match').close();$('reset-confirm').onclick=()=>{clearTimeout(aiTimer);stopReplay();chess.reset();matchId=crypto.randomUUID();selected=null;busy=false;$('reset-match').close();render();};
 $('mode').onchange=()=>{mode=$('mode').value;render();scheduleComputer();};
 $('saved').onclick=openCollection;
-$('export-match').onclick=()=>{const data=chess.pgn(),name='chess-atelier-'+matchId.slice(0,8)+'.pgn';if(window.webkit?.messageHandlers?.nexusExport){const base64=btoa(data);window.webkit.messageHandlers.nexusExport.postMessage({filename:name,base64});return;}const url=URL.createObjectURL(new Blob([data],{type:'application/x-chess-pgn'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+$('export-match').onclick=()=>{const data=chess.pgn(),name='chess-atelier-'+matchId.slice(0,8)+'.pgn';if(window.webkit?.messageHandlers?.craftkitExport){const base64=btoa(data);window.webkit.messageHandlers.craftkitExport.postMessage({filename:name,base64});return;}const url=URL.createObjectURL(new Blob([data],{type:'application/x-chess-pgn'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 initForge({gameId:'chess-atelier',pause(){paused=true;clearTimeout(aiTimer);busy=false;},resume(){paused=false;scheduleComputer();},preview(){return matchArtwork(chess.history({verbose:true}),boardArt);}});
 $('keep-match').onclick=()=>openKeep(result());
 $('finish-match').onclick=()=>openKeep(chess.isGameOver()?result():'resigned');
@@ -172,5 +172,7 @@ classics.querySelectorAll('[data-classic]').forEach(b=>b.onclick=async()=>{
   }
   if(run===replayRun)replaying=false;render();
 });
-addEventListener('nexus-native-pause',e=>{nativePaused=!!e.detail.paused;if(nativePaused){clearTimeout(aiTimer);busy=false;}else scheduleComputer();});
+addEventListener('craftkit-native-pause',e=>{nativePaused=!!e.detail.paused;if(nativePaused){clearTimeout(aiTimer);busy=false;}else scheduleComputer();});
 render();scheduleComputer();
+
+$('export-art').onclick=()=>{const data=matchArtwork(chess.history({verbose:true})),filename='chess-art-'+matchId.slice(0,8)+'.svg';if(window.webkit?.messageHandlers?.craftkitExport){window.webkit.messageHandlers.craftkitExport.postMessage({filename,base64:btoa(unescape(encodeURIComponent(data)))});return;}const url=URL.createObjectURL(new Blob([data],{type:'image/svg+xml'})),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};

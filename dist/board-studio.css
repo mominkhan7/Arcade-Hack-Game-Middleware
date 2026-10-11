@@ -1,4 +1,4 @@
-/* Board Studio and the poured board. Matches Chess Atelier and the Nexus glass sheets. */
+/* Board Studio and the poured board. Matches Chess Atelier and the CraftKit glass sheets. */
 
 /* Playing on a poured board: the marbling sits in its own softened layer beneath
    tinted squares. Tints and softening come from boardLook() so pieces stay legible. */
@@ -22,7 +22,7 @@
 .design-board::before { content: ''; flex: none; width: 14px; height: 14px; border-radius: 4px; background: conic-gradient(#a65a44 0 25%, #c9a45c 0 50%, #3a2a22 0 75%, #7d8c6e 0); }
 .chess-app .board-actions .design-board, .chess-app .board-actions .finish-match { font-weight: 600; }
 
-/* The studio: a Nexus glass sheet, like the keepsake forge. */
+/* The studio: a CraftKit glass sheet, like the keepsake forge. */
 .chess-app dialog#board-studio { max-width: 460px; }
 .studio-card { padding: 22px 20px 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; color: #f7f5e8; }
 .studio-card > * { min-width: 0; }

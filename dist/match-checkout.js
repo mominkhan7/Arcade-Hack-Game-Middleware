@@ -1,7 +1,7 @@
 // From the end of a match to Arcade checkout in one sheet. Arcade starts making the
 // product the moment the match ends, so by the time the player has looked at their
 // board the real preview and price are usually waiting. One tap opens checkout.
-import {NexusClient} from './nexus-client.js';
+import {CraftKitClient} from './craftkit-client.js';
 import {rasterizeDesign} from './design-reference.js';
 import {openSavedKeepsake, supportedFormats} from './commerce.js';
 import {feedback} from './tactile.js';
@@ -12,7 +12,7 @@ const NAMES = {scarf: 'Scarf', pillow: 'Pillow', pendant: 'Pendant'};
 const HEADLINES = {checkmate: 'Checkmate.', stalemate: 'Stalemate.', draw: 'A draw.', resigned: 'Match finished.', 'in-progress': 'Your match, so far.'};
 
 export function initMatchCheckout({gameId, pause = () => {}, resume = () => {}}) {
-  const client = new NexusClient({gameId});
+  const client = new CraftKitClient({gameId});
   const dialog = document.createElement('dialog');
   dialog.id = 'match-checkout';
   dialog.setAttribute('aria-label', 'Your match keepsake');
@@ -87,7 +87,8 @@ export function initMatchCheckout({gameId, pause = () => {}, resume = () => {}})
       const design = {...keepsake.design};
       const catalog = await client.catalog();
       if (catalog.mode === 'live') design.referencePng = await rasterizeDesign(design.referenceSvg);
-      let record = await client.createKeepsake({recipe: kind, title: keepsake.title, prompt: keepsake.prompt, sourceEventId: keepsake.sourceEventId, story: keepsake.story, design});
+      // Every keepsake comes from a shared CraftKit offering (e.g. move-art, match-victory).
+      let record = await client.createFromOffering(keepsake.offering, {...keepsake, type: kind, design});
       record = await client.getKeepsake(record.id);
       run.record = record; if (kind === type) show();
       if (['draft', 'failed'].includes(record.phase)) { record = await client.generateProduct(record.id); run.record = record; if (kind === type) show(); }
@@ -103,7 +104,7 @@ export function initMatchCheckout({gameId, pause = () => {}, resume = () => {}})
 
   function openCheckoutUrl(url) {
     if (!url || new URL(url).protocol !== 'https:') return;
-    if (window.webkit?.messageHandlers?.nexusCheckout) window.webkit.messageHandlers.nexusCheckout.postMessage(url);
+    if (window.webkit?.messageHandlers?.craftkitCheckout) window.webkit.messageHandlers.craftkitCheckout.postMessage(url);
     else window.open(url, '_blank', 'noopener,noreferrer');
   }
 
@@ -145,7 +146,7 @@ export function initMatchCheckout({gameId, pause = () => {}, resume = () => {}})
   });
   dialog.addEventListener('cancel', e => { e.preventDefault(); close(); });
   // The iOS app tells the page when Arcade checkout closes; the web page checks when it regains focus.
-  window.addEventListener('nexus-payment-return', () => { if (dialog.open) refresh(); });
+  window.addEventListener('craftkit-payment-return', () => { if (dialog.open) refresh(); });
   window.addEventListener('focus', () => { if (dialog.open && runs[type]?.record?.phase === 'checkout') refresh(); });
 
   return {
@@ -166,7 +167,7 @@ export function initMatchCheckout({gameId, pause = () => {}, resume = () => {}})
       try { formats = (await supportedFormats())?.filter(f => f !== 'pendant') ?? ['scarf', 'pillow']; } catch { formats = ['scarf', 'pillow']; }
       if (turn !== opened) return;
       if (!formats.length) formats = ['scarf'];
-      type = formats.includes(type) ? type : formats[0];
+      type = formats.includes(next.preferred) ? next.preferred : formats.includes(type) ? type : formats[0];
       $('.mc-formats').innerHTML = formats.map(f => `<button data-format="${f}">${escape(NAMES[f] || f)}</button>`).join('');
       $('.mc-formats').querySelectorAll('[data-format]').forEach(b => b.onclick = () => { type = b.dataset.format; prepare(type); show(); feedback('light'); });
       show(); prepare(type);

@@ -4,7 +4,7 @@ import ShopifyCheckoutSheetKit
 import CryptoKit
 
 @main
-struct NexusArcadeApp: App {
+struct CraftKitDemoApp: App {
     var body: some Scene { WindowGroup { ArcadeHome().preferredColorScheme(.dark) } }
 }
 struct Game: Identifiable {
@@ -20,7 +20,7 @@ struct Game: Identifiable {
         Game(id: "chess-atelier", title: "Chess Atelier", subtitle: "Every move leaves a mark.", symbol: "square.grid.3x3.fill", genre: "THE CLASSICS", colors: [Color(red: 0.52, green: 0.31, blue: 0.24), Color(red: 0.16, green: 0.11, blue: 0.13)])
     ]
 }
-struct NexusGlass: ViewModifier {
+struct CraftKitGlass: ViewModifier {
     var radius: CGFloat = 24
     func body(content: Content) -> some View {
         // glassEffect only exists in the iOS 26 SDK (Swift 6.2+); older Xcode builds use the material fallback.
@@ -46,13 +46,13 @@ struct ArcadeHome: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         HStack {
-                            HStack(spacing: 9) {Image(systemName: "circle.hexagongrid.fill").font(.system(size: 23)); Text("nexus").font(.system(size: 25, weight: .semibold, design: .rounded)).tracking(-1)}
+                            HStack(spacing: 9) {Image(systemName: "circle.hexagongrid.fill").font(.system(size: 23)); Text("CraftKit").font(.system(size: 25, weight: .semibold, design: .rounded)).tracking(-1)}
                             Spacer()
-                            Button {settings=true} label: {Image(systemName: "slider.horizontal.3").font(.system(size: 16)).frame(width: 43,height: 43).modifier(NexusGlass(radius: 22))}.buttonStyle(.plain).accessibilityLabel("Demo connection")
+                            Button {settings=true} label: {Image(systemName: "slider.horizontal.3").font(.system(size: 16)).frame(width: 43,height: 43).modifier(CraftKitGlass(radius: 22))}.buttonStyle(.plain).accessibilityLabel("Demo connection")
                         }.padding(.top, 8)
                         VStack(alignment: .leading, spacing: 12) {
                             Text("A LITTLE PLAY. SOMETHING TO KEEP.").font(.system(size: 9, weight: .semibold, design: .monospaced)).tracking(1.8).foregroundStyle(.white.opacity(0.46))
-                            Text("Good stories.\nGreat keepsakes.").font(.system(size: 39, weight: .medium, design: .serif)).tracking(-1.3).lineSpacing(-1)
+                            Text("Your play.\nOriginal art.").font(.system(size: 39, weight: .medium, design: .serif)).tracking(-1.3).lineSpacing(-1)
                             Text("Explore a world. Make your mark.\nBring a piece of the story home.").font(.system(size: 13)).foregroundStyle(.white.opacity(0.56)).lineSpacing(4)
                         }
                         HStack {Text("YOUR NEXT CHAPTER").font(.system(size: 10,weight: .semibold)).tracking(1.6).foregroundStyle(.white.opacity(0.5)); Spacer();Text("03 WORLDS").font(.system(size: 9,design: .monospaced)).foregroundStyle(.white.opacity(0.35))}.padding(.top,8)
@@ -61,11 +61,12 @@ struct ArcadeHome: View {
                         }
                         HStack(alignment: .top, spacing: 13) {
                             Image(systemName: "shippingbox.fill").font(.system(size: 19)).foregroundStyle(Color(red: 0.72,green: 0.85,blue: 0.76))
-                            VStack(alignment: .leading, spacing: 6) {Text("Made from the way you play.").font(.system(size: 13,weight: .medium));Text("Nexus prepares your keepsake. Arcade’s checkout handles the purchase when you’re ready.").font(.system(size: 11)).lineSpacing(3).foregroundStyle(.white.opacity(0.5))}
-                        }.padding(19).modifier(NexusGlass(radius: 20)).padding(.bottom, 20)
+                            VStack(alignment: .leading, spacing: 6) {Text("Made from the way you play.").font(.system(size: 13,weight: .medium));Text("Achievements and the way you play become personal art. Choose a keepsake when you’re ready.").font(.system(size: 11)).lineSpacing(3).foregroundStyle(.white.opacity(0.5))}
+                        }.padding(19).modifier(CraftKitGlass(radius: 20)).padding(.bottom, 20)
                     }.padding(.horizontal, 23)
                 }
             }.tabItem {Label("Play",systemImage: "gamecontroller.fill")}.tag(0)
+            LibraryScreen(server: server,token: token, destination: "offerings", screenTitle: "CraftKit").tabItem {Label("CraftKit",systemImage: "sparkles")}.tag(2)
             LibraryScreen(server: server,token: token).tabItem {Label("Keepsakes",systemImage: "square.stack.3d.up.fill")}.tag(1)
         }.tint(Color(red: 0.77,green: 0.9,blue: 0.82))
         .fullScreenCover(item: $selected) {game in GameScreen(game:game,server:server,token:token)}
@@ -75,7 +76,7 @@ struct ArcadeHome: View {
             if let i=CommandLine.arguments.firstIndex(of: "--demo-game"), CommandLine.arguments.count>i+1 {selected=Game.all.first(where: {$0.id==CommandLine.arguments[i+1]})}
             #endif
         }
-        .onOpenURL {url in if url.scheme=="nexusarcade",url.host=="game",let game=Game.all.first(where: {$0.id==url.lastPathComponent}) {selected=game}}
+        .onOpenURL {url in if ["craftkit", "nexusarcade"].contains(url.scheme ?? ""),url.host=="game",let game=Game.all.first(where: {$0.id==url.lastPathComponent}) {selected=game}}
         .sheet(isPresented: $settings) {
             NavigationStack {
                 Form {
@@ -97,10 +98,10 @@ struct GameCard: View {
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading,spacing: 6) {Text(game.title).font(.system(size: 29,weight: .medium,design: .serif)).tracking(-0.6);Text(game.subtitle).font(.system(size: 11)).foregroundStyle(.white.opacity(0.66))}
                     Spacer()
-                    Image(systemName:"arrow.up.right").font(.system(size: 16,weight: .medium)).frame(width: 42,height: 42).modifier(NexusGlass(radius: 22))
+                    Image(systemName:"arrow.up.right").font(.system(size: 16,weight: .medium)).frame(width: 42,height: 42).modifier(CraftKitGlass(radius: 22))
                 }
             }.padding(22)
-            VStack {HStack {Text(game.id=="chess-atelier" ? "A TIMELESS CLASSIC" : "NEXUS ORIGINAL").font(.system(size: 7,weight: .semibold,design: .monospaced)).tracking(1).padding(.horizontal,11).padding(.vertical,8).modifier(NexusGlass(radius: 14));Spacer();Image(systemName:game.symbol).font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))};Spacer()}.padding(18)
+            VStack {HStack {Text(game.id=="chess-atelier" ? "A TIMELESS CLASSIC" : "CRAFTKIT ORIGINAL").font(.system(size: 7,weight: .semibold,design: .monospaced)).tracking(1).padding(.horizontal,11).padding(.vertical,8).modifier(CraftKitGlass(radius: 14));Spacer();Image(systemName:game.symbol).font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))};Spacer()}.padding(18)
         }.frame(height: 244).clipShape(RoundedRectangle(cornerRadius: 27)).overlay(RoundedRectangle(cornerRadius:27).stroke(.white.opacity(0.11),lineWidth:1)).contentShape(RoundedRectangle(cornerRadius:27))
     }
 }
@@ -134,16 +135,18 @@ struct WorldIllustration: View {
 struct LibraryScreen: View {
     let server: String
     let token: String
+    var destination: String = "library"
+    var screenTitle: String = "Keepsakes"
     @State private var error: String?
     var body: some View {
         NavigationStack {
             Group {
                 if let error {ContentUnavailableView("Connection interrupted",systemImage:"wifi.exclamationmark",description:Text(error))}
                 else if var components=URLComponents(string:server) {
-                    let _ = {components.path="/mobile-session";components.queryItems=[URLQueryItem(name:"game",value:"library"),URLQueryItem(name:"token",value:token)]}()
+                    let _ = {components.path="/mobile-session";components.queryItems=[URLQueryItem(name:"game",value:destination),URLQueryItem(name:"token",value:token)]}()
                     if let url=components.url {GameWebView(url:url,error:$error)}
                 }
-            }.navigationTitle("Keepsakes").navigationBarTitleDisplayMode(.large).background(Color(red:0.045,green:0.065,blue:0.085))
+            }.navigationTitle(screenTitle).navigationBarTitleDisplayMode(.large).background(Color(red:0.045,green:0.065,blue:0.085))
         }
     }
 }
@@ -156,7 +159,7 @@ struct WorldButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.88 : 1)
             .frame(width: 54, height: 54)
             .contentShape(Rectangle())
-            .modifier(NexusGlass(radius: 27))
+            .modifier(CraftKitGlass(radius: 27))
             .brightness(configuration.isPressed ? 0.1 : 0)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
@@ -188,7 +191,7 @@ struct GameScreen: View {
             HStack(spacing: 12) {
                 Button {UIImpactFeedbackGenerator(style:.soft).impactOccurred();dismiss()} label: {Image(systemName:"xmark").font(.system(size:18,weight:.semibold))}.buttonStyle(WorldButtonStyle(ink:game.id=="chess-atelier" ? Color(red:0.2,green:0.16,blue:0.13) : .white)).accessibilityLabel("Return to worlds")
                 Spacer(minLength: 0)
-                Text(game.title).font(.system(size:17,weight:.medium,design:.serif)).padding(.horizontal,19).frame(height:45).modifier(NexusGlass(radius:23)).allowsHitTesting(false)
+                Text(game.title).font(.system(size:17,weight:.medium,design:.serif)).padding(.horizontal,19).frame(height:45).modifier(CraftKitGlass(radius:23)).allowsHitTesting(false)
                 Spacer(minLength: 0)
                 Button {UIImpactFeedbackGenerator(style:.soft).impactOccurred();menu=true} label: {Image(systemName:"ellipsis").font(.system(size:20,weight:.semibold))}.buttonStyle(WorldButtonStyle(ink:game.id=="chess-atelier" ? Color(red:0.2,green:0.16,blue:0.13) : .white)).accessibilityLabel("World menu")
             }.padding(.horizontal,17).padding(.top,8).zIndex(10)
@@ -220,17 +223,17 @@ struct GameWebView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .default()
         configuration.allowsInlineMediaPlayback = true
-        configuration.userContentController.add(context.coordinator, name: "nexusCheckout")
-        configuration.userContentController.add(context.coordinator, name: "nexusExport")
-        configuration.userContentController.add(context.coordinator, name: "nexusHaptic")
-        configuration.userContentController.addScriptMessageHandler(context.coordinator, contentWorld: .page, name: "nexusDigest")
+        configuration.userContentController.add(context.coordinator, name: "craftkitCheckout")
+        configuration.userContentController.add(context.coordinator, name: "craftkitExport")
+        configuration.userContentController.add(context.coordinator, name: "craftkitHaptic")
+        configuration.userContentController.addScriptMessageHandler(context.coordinator, contentWorld: .page, name: "craftkitDigest")
         // LAN HTTP is not a secure Web Crypto context. Bridge SHA-256 to CryptoKit.
         let top=UIApplication.shared.connectedScenes.compactMap {($0 as? UIWindowScene)?.windows.first(where: {$0.isKeyWindow})}.first?.safeAreaInsets.top ?? 59
         let cryptoScript = """
         document.documentElement.classList.add('native-shell');
         document.documentElement.style.setProperty('--native-top','\(Int(top+72))px');
         if (!crypto.randomUUID) crypto.randomUUID = () => {const b=crypto.getRandomValues(new Uint8Array(16)); b[6]=(b[6]&15)|64; b[8]=(b[8]&63)|128; const h=[...b].map(x=>x.toString(16).padStart(2,'0')).join(''); return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);};
-        if (!crypto.subtle) Object.defineProperty(crypto,'subtle',{value:{digest:async (algorithm,bytes)=>{if(algorithm!=='SHA-256')throw new Error('Unsupported digest');const a=new Uint8Array(bytes);let text='';for(const b of a)text+=String.fromCharCode(b);const hex=await window.webkit.messageHandlers.nexusDigest.postMessage(btoa(text));return Uint8Array.from(hex.match(/../g),h=>parseInt(h,16)).buffer;}}});
+        if (!crypto.subtle) Object.defineProperty(crypto,'subtle',{value:{digest:async (algorithm,bytes)=>{if(algorithm!=='SHA-256')throw new Error('Unsupported digest');const a=new Uint8Array(bytes);let text='';for(const b of a)text+=String.fromCharCode(b);const hex=await window.webkit.messageHandlers.craftkitDigest.postMessage(btoa(text));return Uint8Array.from(hex.match(/../g),h=>parseInt(h,16)).buffer;}}});
         """
         configuration.userContentController.addUserScript(WKUserScript(source: cryptoScript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         let webView=WKWebView(frame: .zero, configuration: configuration)
@@ -245,12 +248,12 @@ struct GameWebView: UIViewRepresentable {
     func updateUIView(_ uiView: WKWebView, context: UIViewRepresentableContext<GameWebView>) {
         if context.coordinator.lastPause != isPaused {
             context.coordinator.lastPause=isPaused
-            uiView.evaluateJavaScript("window.dispatchEvent(new CustomEvent('nexus-native-pause',{detail:{paused:\(isPaused ? "true":"false")}}))",completionHandler:nil)
+            uiView.evaluateJavaScript("window.dispatchEvent(new CustomEvent('craftkit-native-pause',{detail:{paused:\(isPaused ? "true":"false")}}))",completionHandler:nil)
         }
         if let gameAction,context.coordinator.lastAction != gameAction {
             context.coordinator.lastAction=gameAction
             let value=gameAction.components(separatedBy:":")[0]
-            if ["keepsakes","wardrobe","collection"].contains(value) {uiView.evaluateJavaScript("window.dispatchEvent(new CustomEvent('nexus-game-menu',{detail:'\(value)'}))",completionHandler:nil)}
+            if ["keepsakes","wardrobe","collection"].contains(value) {uiView.evaluateJavaScript("window.dispatchEvent(new CustomEvent('craftkit-game-menu',{detail:'\(value)'}))",completionHandler:nil)}
         }
     }
     static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {uiView.configuration.userContentController.removeAllScriptMessageHandlers()}
@@ -264,7 +267,7 @@ struct GameWebView: UIViewRepresentable {
         weak var checkoutController: UIViewController?
         init(error: Binding<String?>, origin: String?) {_error=error; self.origin=origin}
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-            if message.name == "nexusHaptic",message.frameInfo.isMainFrame,message.frameInfo.securityOrigin.host == origin,let kind=message.body as? String,Date().timeIntervalSince(lastHaptic)>0.045 {
+            if message.name == "craftkitHaptic",message.frameInfo.isMainFrame,message.frameInfo.securityOrigin.host == origin,let kind=message.body as? String,Date().timeIntervalSince(lastHaptic)>0.045 {
                 lastHaptic=Date()
                 switch kind {
                 case "success": UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -275,7 +278,7 @@ struct GameWebView: UIViewRepresentable {
                 }
                 return
             }
-            if message.name == "nexusExport", message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host == origin,
+            if message.name == "craftkitExport", message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host == origin,
                let body=message.body as? [String:String], let base64=body["base64"], let data=Data(base64Encoded: base64), data.count <= 8_000_000,
                let name=body["filename"], ["png","svg","json","pgn"].contains(URL(fileURLWithPath: name).pathExtension) {
                 let file=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + "-" + URL(fileURLWithPath: name).lastPathComponent)
@@ -287,7 +290,7 @@ struct GameWebView: UIViewRepresentable {
                 share.popoverPresentationController?.sourceRect=CGRect(x:presenter.view.bounds.midX,y:presenter.view.bounds.midY,width:1,height:1)
                 presenter.present(share,animated:true); return
             }
-            guard message.name == "nexusCheckout", message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host == origin, let text=message.body as? String, let url=URL(string: text), url.scheme == "https" else {return}
+            guard message.name == "craftkitCheckout", message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host == origin, let text=message.body as? String, let url=URL(string: text), url.scheme == "https" else {return}
             guard url.host == "checkout.arcade.ai", let scene=UIApplication.shared.connectedScenes.first as? UIWindowScene, let root=scene.windows.first(where: {$0.isKeyWindow})?.rootViewController else {return}
             var presenter=root; while let next=presenter.presentedViewController {presenter=next}
             checkoutWebView=message.webView
@@ -296,7 +299,7 @@ struct GameWebView: UIViewRepresentable {
         }
         private func finishCheckout(_ status: String) {
             checkoutController?.dismiss(animated: true)
-            checkoutWebView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('nexus-payment-return',{detail:{status:'\(status)'}}))", completionHandler: nil)
+            checkoutWebView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('craftkit-payment-return',{detail:{status:'\(status)'}}))", completionHandler: nil)
         }
         func checkoutDidComplete(event: CheckoutCompletedEvent) {finishCheckout("completed")}
         func checkoutDidCancel() {finishCheckout("cancelled")}
@@ -306,7 +309,7 @@ struct GameWebView: UIViewRepresentable {
             if ["https", "tel", "mailto"].contains(url.scheme) {UIApplication.shared.open(url)}
         }
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage, replyHandler: @escaping (Any?, String?) -> Void) {
-            guard message.name == "nexusDigest", message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host == origin, let text=message.body as? String, let data=Data(base64Encoded:text), data.count <= 2_000_000 else {replyHandler(nil,"Invalid digest input");return}
+            guard message.name == "craftkitDigest", message.frameInfo.isMainFrame, message.frameInfo.securityOrigin.host == origin, let text=message.body as? String, let data=Data(base64Encoded:text), data.count <= 2_000_000 else {replyHandler(nil,"Invalid digest input");return}
             replyHandler(SHA256.hash(data:data).map {String(format:"%02x",$0)}.joined(),nil)
         }
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -318,7 +321,7 @@ struct GameWebView: UIViewRepresentable {
                 let argument=CommandLine.arguments[i+1]
                 guard let url=URL(string:argument),url.scheme=="https",url.host=="checkout.arcade.ai" else {return}
                 checkoutWebView=webView
-                webView.evaluateJavaScript("window.webkit.messageHandlers.nexusCheckout.postMessage('\(url.absoluteString)')",completionHandler:nil)
+                webView.evaluateJavaScript("window.webkit.messageHandlers.craftkitCheckout.postMessage('\(url.absoluteString)')",completionHandler:nil)
             }
             #endif
         }

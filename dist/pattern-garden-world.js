@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 
-// Playable scene: the world supplies journey events; Nexus owns keepsake commerce.
+// Playable scene: the world supplies journey events; CraftKit owns keepsake commerce.
 export function createGardenWorld({canvas,onStep,onDiscover,onReveal,onTarget,getJourney,isPaused}) {
   let renderer;
   try { renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'}); }

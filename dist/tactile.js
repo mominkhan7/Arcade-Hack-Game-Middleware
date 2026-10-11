@@ -1,6 +1,6 @@
 // Shared touch feedback. Payment and game state remain in their existing owners.
 export function feedback(kind='selection') {
-  window.webkit?.messageHandlers?.nexusHaptic?.postMessage(kind);
+  window.webkit?.messageHandlers?.craftkitHaptic?.postMessage(kind);
 }
 let lastFeedback=0;
 document.addEventListener('pointerdown',event=>{
@@ -21,4 +21,4 @@ const observer=new MutationObserver(()=>{
   }
 });observer.observe(document.body,{subtree:true,attributes:true,attributeFilter:['open']});
 
-addEventListener('nexus-game-menu',event=>{if(event.detail==='keepsakes'){window.dispatchEvent(new Event('nexus-open-collection'));return;}if(['wardrobe','collection'].includes(event.detail))document.getElementById(event.detail)?.click();});
+addEventListener('craftkit-game-menu',event=>{if(event.detail==='keepsakes'){window.dispatchEvent(new Event('craftkit-open-collection'));return;}if(['wardrobe','collection'].includes(event.detail))document.getElementById(event.detail)?.click();});
