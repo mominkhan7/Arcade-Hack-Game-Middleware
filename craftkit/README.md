@@ -1,5 +1,7 @@
 # CraftKit keepsake middleware
 
+Built for CraftKit, our **second-place project at Shopping 3.0: the AI Commerce Hackathon with Arcade** on October 11, 2026, during SF Tech Week in San Francisco. See the [project overview](../README.md).
+
 CraftKit turns a game-owned design snapshot into a saved keepsake with a product, quote, checkout, and order lifecycle. Relic Island, Pattern Garden, Chess Atelier and Signal Garden use the same SDK and forge UI against the same service.
 
 ## What runs where

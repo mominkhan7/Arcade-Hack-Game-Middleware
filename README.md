@@ -1,5 +1,7 @@
 # CraftKit
 
+**Second place at Shopping 3.0: the AI Commerce Hackathon with Arcade, October 11, 2026, during SF Tech Week in San Francisco.**
+
 Three playable experiences and **CraftKit**, a shared middleware layer that turns a player's design or achievement into a saved keepsake and a physical-product commerce journey.
 
 This is an Arcade hackathon project exploring a simple idea: **the object is more meaningful when the player has a story behind it.** Games own the experience and capture the design; CraftKit owns the reusable design-to-order lifecycle.
