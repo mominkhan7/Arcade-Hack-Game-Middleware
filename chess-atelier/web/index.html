@@ -28,12 +28,12 @@
         <figcaption><strong id="hero-name">The Opera Game</strong><span id="hero-detail">Morphy · Paris 1858</span></figcaption>
       </figure>
 
-      <p class="lede">Play a game and every move leaves a line in its piece's ink. When it ends, your game is a one-of-one artwork, and Arcade can make it into something real.</p>
+      <p class="lede">Choose your board, your pieces and an art medium. Every move paints itself, and when the game ends Arcade can make it into something you keep.</p>
 
       <div class="starts">
         <button class="start" data-start="friend"><span class="start-icon" aria-hidden="true">♟</span><span><strong>Play a friend</strong><small>Pass the phone. Every move draws.</small></span><span class="chev" aria-hidden="true">›</span></button>
         <button class="start" data-start="computer"><span class="start-icon" aria-hidden="true">♞</span><span><strong>Play the computer</strong><small>A friendly opponent who never gets tired.</small></span><span class="chev" aria-hidden="true">›</span></button>
-        <button class="start" data-start="legends"><span class="start-icon" aria-hidden="true">♛</span><span><strong>Replay a legend</strong><small>Watch famous games draw themselves.</small></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="start" data-start="legends"><span class="start-icon" aria-hidden="true">♛</span><span><strong>Rewatch a famous match</strong><small>Watch history draw itself.</small></span><span class="chev" aria-hidden="true">›</span></button>
       </div>
 
       <button class="resume" id="resume" hidden><span>Continue your game</span><small id="resume-detail"></small></button>
@@ -42,9 +42,29 @@
 
     <!-- Legends -->
     <section class="view" id="legends" data-view="legends" hidden>
-      <nav class="bar"><button class="icon-btn" data-back aria-label="Back">‹</button><div class="bar-title"><strong>Replay a legend</strong></div><span class="icon-btn spacer"></span></nav>
-      <p class="section-lede">Five famous games. Pick one and watch it draw itself, move by move.</p>
+      <nav class="bar"><button class="icon-btn" data-back aria-label="Back">‹</button><div class="bar-title"><strong>Famous matches</strong></div><span class="icon-btn spacer"></span></nav>
+      <p class="section-lede">Pick a match. Next you choose how it looks, then watch it draw itself move by move.</p>
       <div class="legend-list" id="legend-list"></div>
+    </section>
+
+    <!-- Setup -->
+    <section class="view" id="setup" data-view="setup" hidden>
+      <nav class="bar"><button class="icon-btn" data-back aria-label="Back">‹</button><div class="bar-title"><strong>Make it yours</strong><small id="setup-sub"></small></div><span class="icon-btn spacer"></span></nav>
+      <figure class="preview">
+        <div class="frame"><div class="art" id="setup-art"></div></div>
+        <figcaption><span id="setup-caption"></span><span class="mini-board" id="setup-pieces" aria-hidden="true"></span></figcaption>
+      </figure>
+      <h3 class="pick-title">Art medium</h3>
+      <div class="mediums" id="mediums" role="radiogroup" aria-label="Art medium"></div>
+      <h3 class="pick-title">Board color</h3>
+      <div class="chips" id="boards" role="radiogroup" aria-label="Board color"></div>
+      <h3 class="pick-title">Piece colors</h3>
+      <div class="chips" id="piece-sets" role="radiogroup" aria-label="Piece colors"></div>
+      <div class="custom-row">
+        <label class="custom"><input type="color" id="custom-white"><span>White pieces</span></label>
+        <label class="custom"><input type="color" id="custom-black"><span>Black pieces</span></label>
+      </div>
+      <div class="sticky-go"><button class="primary wide" id="setup-go">Start the game</button></div>
     </section>
 
     <!-- Game -->
@@ -52,13 +72,13 @@
       <nav class="bar">
         <button class="icon-btn" data-back aria-label="Back">‹</button>
         <div class="bar-title"><strong id="game-title">Play a friend</strong><small id="game-status">White to move</small></div>
-        <button class="icon-btn ink-btn" id="ink-btn" aria-label="Change inks"><span class="ink-dots" id="ink-dots"></span></button>
+        <button class="icon-btn ink-btn" id="style-btn" aria-label="Change the look"><span class="ink-dots" id="ink-dots"></span></button>
       </nav>
 
       <div class="board-wrap">
         <div class="board" id="board" role="grid" aria-label="Chess board">
-          <div class="squares" id="squares"></div>
           <div class="art" id="board-art"></div>
+          <div class="squares" id="squares"></div>
           <div class="pieces" id="pieces"></div>
         </div>
       </div>
@@ -94,9 +114,12 @@
         <figcaption id="reveal-caption"></figcaption>
       </figure>
       <div class="tune">
-        <div class="swatches" id="reveal-swatches" role="radiogroup" aria-label="Inks"></div>
-        <div class="seg small" role="group" aria-label="Background">
-          <button data-grid="none">Pure</button><button data-grid="lines">Grid</button><button data-grid="board">Board</button>
+        <div class="medium-pills" id="reveal-mediums" role="radiogroup" aria-label="Art medium"></div>
+        <div class="tune-row">
+          <div class="seg small" role="group" aria-label="Background">
+            <button data-grid="none">Pure</button><button data-grid="lines">Grid</button><button data-grid="board">Board</button>
+          </div>
+          <button class="ghost small-btn" id="reveal-colors">Colors</button>
         </div>
       </div>
       <div class="controls three">
@@ -145,13 +168,6 @@
     </section>
   </main>
 
-  <dialog class="sheet" id="ink-sheet" aria-label="Inks">
-    <div class="sheet-card">
-      <div class="sheet-head"><strong>Inks</strong><button class="icon-btn" data-close aria-label="Close">×</button></div>
-      <p class="sheet-lede">Every piece draws in its own ink. Change it any time; the whole game redraws.</p>
-      <div class="palette-grid" id="palette-grid"></div>
-    </div>
-  </dialog>
 
   <dialog class="sheet" id="order-sheet" aria-label="Order placed">
     <div class="sheet-card center">

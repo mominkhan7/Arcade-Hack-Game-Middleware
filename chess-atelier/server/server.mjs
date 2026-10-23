@@ -67,6 +67,15 @@ const simulated = {
 
 // ---------- Live Arcade ----------
 
+// How to describe each art medium to Arcade, so the pattern keeps its character.
+const MEDIUM_PROMPTS = {
+  lines: 'A fine-art ink drawing of crisp curved lines, dots and rings',
+  brush: 'A sumi-e style brush painting of tapered calligraphic strokes with dry-brush texture and ink splatter',
+  watercolor: 'A loose watercolor painting of soft washes with darker drying edges, blooms and paper granulation',
+  constellation: 'A night-sky constellation of glowing stars joined by fine lines of light',
+  string: 'A string art piece of taut colored threads stretched between small pins',
+};
+
 const categoryIds = new Map();
 
 async function arcade(procedure, body = {}, {timeout = 120_000} = {}) {
@@ -94,7 +103,7 @@ async function waitForJob(jobId, {interval = 2500, timeout = 300_000} = {}) {
 }
 
 const live = {
-  async createPiece({image, colors = [], title}) {
+  async createPiece({image, colors = [], title, medium}) {
     const bytes = Buffer.from(image, 'base64');
     const id = randomUUID();
     const upload = await arcade('references/createUpload', {requestId: `${id}-upload`, mediaType: 'image/png', byteLength: bytes.length});
@@ -104,9 +113,9 @@ const live = {
     const job = await arcade('patterns/create', {
       requestId: `${id}-pattern`,
       prompt: [
-        `A fine-art line drawing titled "${String(title ?? 'A game of chess').slice(0, 80)}": the record of a chess game.`,
-        'Keep every curved line, dot and ring exactly where it is in the reference, with the same colors and the same flat paper background.',
-        'Crisp ink lines with a subtle hand-drawn quality. Do not add chess pieces, letters, numbers or a checkerboard.',
+        `${MEDIUM_PROMPTS[medium] ?? MEDIUM_PROMPTS.lines} titled "${String(title ?? 'A game of chess').slice(0, 80)}": the record of a chess game.`,
+        'Keep every mark exactly where it is in the reference, with the same colors, the same color mixing where marks cross, and the same paper background.',
+        'Do not add chess pieces, letters, numbers or a checkerboard.',
       ].join(' '),
       referenceIds: [reference.referenceId],
       colors: colors.filter(c => /^#[0-9A-Fa-f]{6}$/.test(c)).slice(0, 10),
