@@ -4,7 +4,7 @@ import {Chess} from '../web/vendor/chess.js';
 import {layers, motion, drawingSvg, paceFor, timing} from '../web/drawing.js';
 import {MEDIUMS, cleanStyle, inksOf, DEFAULT_STYLE} from '../web/styles.js';
 import {pigmentMix} from '../web/paint.js';
-import {CLASSICS} from '../web/classics.js';
+import {CLASSICS, ERAS} from '../web/classics.js';
 
 const historyOf = pgn => { const c = new Chess(); c.loadPgn(pgn); return {chess: c, moves: c.history({verbose: true})}; };
 const opera = historyOf(CLASSICS[0].pgn).moves;
@@ -15,6 +15,15 @@ test('every famous match is a legal game that ends the way we say', () => {
     const {chess} = historyOf(legend.pgn);
     if (legend.ending) assert.equal(chess.isGameOver(), false, legend.id);
     else assert.equal(chess.isCheckmate(), true, legend.id);
+  }
+});
+
+test('the famous-games library has 55 unique games, each in a known era with a name, players and a note', () => {
+  assert.equal(CLASSICS.length, 55);
+  assert.equal(new Set(CLASSICS.map(l => l.id)).size, 55);
+  for (const l of CLASSICS) {
+    assert.ok(ERAS.some(e => e.id === l.era), `${l.id} has an era`);
+    assert.ok(l.name && l.white && l.black && l.note && l.place, `${l.id} is described`);
   }
 });
 

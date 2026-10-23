@@ -6,7 +6,7 @@ import {pieceSvg} from './pieces.js';
 import {drawingSvg, drawDuration, paceFor} from './drawing.js';
 import {painterIn, paintingPng} from './paint.js';
 import {BOARDS, PIECES, MEDIUMS, DEFAULT_STYLE, cleanStyle, styleColors, isDark, mediumName} from './styles.js';
-import {CLASSICS} from './classics.js';
+import {CLASSICS, ERAS} from './classics.js';
 
 const $ = sel => document.querySelector(sel);
 const $$ = sel => [...document.querySelectorAll(sel)];
@@ -97,14 +97,31 @@ $('#open-gallery').addEventListener('click', () => go('gallery'));
 
 // ---------- Famous matches ----------
 
+let legendEra = store.get('atelier-era', 'all');
+// Thumbnails are drawn only as they scroll into view, so a long list opens instantly.
+const thumbs = 'IntersectionObserver' in window ? new IntersectionObserver(entries => {
+  for (const e of entries) if (e.isIntersecting) { drawThumb(e.target); thumbs.unobserve(e.target); }
+}, {rootMargin: '300px'}) : null;
+function drawThumb(el) { const l = CLASSICS.find(x => x.id === el.dataset.thumb); if (l) el.innerHTML = drawingSvg(historyOf(l.pgn), state.style); }
+
 function showLegends() {
-  $('#legend-list').innerHTML = CLASSICS.map(l => {
-    const moves = historyOf(l.pgn);
-    return `<button class="legend" data-legend="${l.id}">
-      <div class="thumb art">${drawingSvg(moves, state.style)}</div>
-      <span><strong>${escape(l.name)}</strong><span class="who">${escape(l.white)} vs. ${escape(l.black)}${l.year ? ` · ${l.year}` : ''} · ${Math.ceil(moves.length / 2)} moves</span><span class="note">${escape(l.note)}</span></span>
-    </button>`;
+  const byYear = (a, b) => (a.year ?? 9999) - (b.year ?? 9999);
+  const shown = ERAS.filter(e => legendEra === 'all' || e.id === legendEra);
+  $('#legend-lede').textContent = `${CLASSICS.length} matches, from 1750 to today. Pick one, choose how it looks, then watch it paint itself move by move.`;
+  $('#era-filters').innerHTML = [{id: 'all', name: 'All'}, ...ERAS].map(e =>
+    `<button role="radio" data-era="${e.id}" aria-checked="${e.id === legendEra}">${escape(e.name)}</button>`).join('');
+  $$('[data-era]').forEach(b => b.addEventListener('click', () => { legendEra = b.dataset.era; store.set('atelier-era', legendEra); showLegends(); }));
+  $('#legend-list').innerHTML = shown.map(era => {
+    const games = CLASSICS.filter(l => l.era === era.id).sort(byYear);
+    return `<h3 class="era-title">${escape(era.name)} <small>${escape(era.span)} · ${games.length}</small></h3>` + games.map(l => {
+      const moves = Math.ceil(historyOf(l.pgn).length / 2);
+      return `<button class="legend" data-legend="${l.id}">
+        <div class="thumb art" data-thumb="${l.id}"></div>
+        <span><strong>${escape(l.name)}</strong><span class="who">${escape(l.white)} vs. ${escape(l.black)}${l.year ? ` · ${l.place}, ${l.year}` : ` · ${l.place}`} · ${moves} ${moves === 1 ? 'move' : 'moves'}</span><span class="note">${escape(l.note)}</span></span>
+      </button>`;
+    }).join('');
   }).join('');
+  $$('[data-thumb]').forEach(el => thumbs ? thumbs.observe(el) : drawThumb(el));
   $$('[data-legend]').forEach(b => b.addEventListener('click', () => openSetup({mode: 'legend', legend: CLASSICS.find(l => l.id === b.dataset.legend)})));
 }
 

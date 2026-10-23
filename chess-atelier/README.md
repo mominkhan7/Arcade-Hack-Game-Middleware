@@ -54,7 +54,7 @@ The same game and style always make the same picture. `web/paint.js` is the engi
 | `web/drawing.js` | Turns a game into marks (and quick SVG thumbnails) |
 | `web/paint.js` | The paint engine: pigment, fluid and optics, and the PNG for Arcade |
 | `web/app.js` | Screens, board, playback and the Arcade flow |
-| `web/classics.js` | Five famous games |
+| `web/classics.js` | 55 famous games and traps in five eras, each verified by the tests |
 | `web/styles.js` | Boards, piece colors and mediums |
 | `web/engine.js`, `web/pieces.js`, `web/vendor/chess.js` | Rules, a small computer opponent and the piece art |
 | `server/server.mjs` | Static server plus `/api` for Arcade (simulated or live) |
