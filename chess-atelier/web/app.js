@@ -429,8 +429,32 @@ $('#make-it').addEventListener('click', () => go('make'));
 const STEP_ORDER = ['upload', 'pattern', 'product', 'ready'];
 
 async function config() {
-  if (!state.config) state.config = await fetch('/api/config').then(r => r.json());
+  if (!state.config) {
+    try { state.config = await fetch('/api/config').then(r => { if (!r.ok) throw new Error(); return r.json(); }); }
+    catch { state.config = {mode: 'simulated', offline: true, products: OFFLINE_PRODUCTS}; }
+  }
   return state.config;
+}
+
+// Without the Chess Atelier server (for example, opened from a shared link), Arcade is simulated in the page
+// with the same prices and timing as the server's simulation. Nothing is sent anywhere.
+const OFFLINE_PRODUCTS = [
+  {kind: 'scarf', name: 'Silk Scarf', detail: 'Silk twill · 36 × 36 in · hand-rolled hem', price: {amount: '104.00', currency: 'USD'}, maker: 'Odette'},
+  {kind: 'pillow', name: 'Linen Pillow', detail: 'Linen · 18 × 18 in · insert included', price: {amount: '81.35', currency: 'USD'}, maker: 'Odette'},
+  {kind: 'pocket-square', name: 'Pocket Square', detail: 'Silk · 16 × 16 in · hand-rolled hem', price: {amount: '98.00', currency: 'USD'}, maker: 'Odette'},
+];
+const offline = {pieces: new Map()};
+async function offlineApi(path, body) {
+  if (path === '/api/pieces') { const id = 'sim-' + uid(); offline.pieces.set(id, {image: body.image, started: Date.now()}); return {pieceId: id}; }
+  const piece = path.match(/^\/api\/pieces\/(.+)$/);
+  if (piece) {
+    const p = offline.pieces.get(piece[1]);
+    if (Date.now() - p.started < 7000) return {status: 'running'};
+    return {status: 'succeeded', patternId: piece[1], imageUrl: 'data:image/png;base64,' + p.image};
+  }
+  if (path === '/api/products') { await wait(4000); const o = OFFLINE_PRODUCTS.find(x => x.kind === body.kind); return {...o, productId: 'sim-product-' + uid(), simulated: true}; }
+  if (path === '/api/checkout') return {simulated: true, orderNumber: `CA-${Math.floor(100000 + Math.random() * 900000)}`, name: body.name, price: body.price, estimatedShip: 'Made to order and shipped in about 2 weeks'};
+  throw new Error('Not available offline');
 }
 
 function mock(kind, inner) { return `<div class="mock ${kind}"><div class="surface">${inner}</div></div>`; }
@@ -505,7 +529,7 @@ async function makeIt() {
     for (;;) {
       await wait(1500);
       if (!live()) return;
-      piece = await fetch(`/api/pieces/${pieceId}`).then(r => r.json());
+      piece = state.config.offline ? await offlineApi(`/api/pieces/${pieceId}`) : await fetch(`/api/pieces/${pieceId}`).then(r => r.json());
       if (piece.status !== 'running') break;
     }
     if (piece.status !== 'succeeded') throw new Error(piece.message || 'Arcade could not finish this design');
@@ -549,6 +573,7 @@ async function order(product) {
 }
 
 async function api(path, body) {
+  if (state.config?.offline) return offlineApi(path, body);
   const res = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`);
@@ -573,5 +598,8 @@ $$('dialog').forEach(d => {
 });
 
 function haptic() { try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(8); } catch {} }
+
+// Downloads only work when the app is served from its own server (a shared link's frame blocks them).
+if (!['127.0.0.1', 'localhost'].includes(location.hostname)) $('#download').hidden = true;
 
 show('home');
