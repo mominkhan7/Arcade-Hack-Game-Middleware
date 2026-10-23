@@ -32,9 +32,24 @@ test('moves drag ink; knights travel an L; captures splash; castling moves the r
   assert.equal(moveOps(mate).at(-1).kind, 'drop');
 });
 
-test('the classic games are legal from start to checkmate', () => {
+test('the classic games are legal from start to finish', () => {
   for (const game of CLASSICS) {
     const c = new Chess(); c.loadPgn(game.pgn);
-    assert.ok(c.isCheckmate(), `${game.name} ends in checkmate`);
+    assert.ok(c.history().length > 0, `${game.name} loads`);
+    if (game.ending) assert.ok(!c.isGameOver(), `${game.name} ends by resignation`);
+    else assert.ok(c.isCheckmate(), `${game.name} ends in checkmate`);
   }
+});
+
+import {lineMarks, linesSvg} from '../dist/move-lines.js';
+test('lines: one path per move (two for castling), rings for captures, and rings at checkmate', () => {
+  const opera = play(CLASSICS.find(c => c.id === 'opera').pgn);
+  const marks = lineMarks(opera);
+  const castles = opera.filter(m => /[kq]/.test(m.flags)).length;
+  assert.equal(marks.filter(m => m.kind === 'path').length, opera.length + castles);
+  assert.equal(marks.filter(m => m.kind === 'origin').length, 32);
+  assert.ok(marks.filter(m => m.kind === 'ring' && m.i === opera.length - 1).length >= 3, 'checkmate rings');
+  const svg = linesSvg(opera, 'atelier', {size: 720});
+  assert.ok(svg.startsWith('<svg') && svg.includes('width="720"') && !svg.includes('mv-draw'), 'static print SVG');
+  assert.ok(linesSvg(opera, 'atelier', {animate: 'all'}).includes('mv-draw'));
 });

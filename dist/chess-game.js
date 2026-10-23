@@ -3,52 +3,50 @@ import {pieceSvg} from './chess-pieces.js';
 import {Chess,chooseMove} from './chess-engine.js';
 import {matchArtwork} from './chess-art.js';
 import {initForge,openForge,openCollection,supportedFormats,openOffering} from './commerce.js';
-import {initBoardStudio,loadBoard,boardImage,boardLook} from './board-studio.js';
 import {initMatchCheckout} from './match-checkout.js';
 import {MoveArt,CLASSICS} from './move-art.js';
+import {linesSvg,drawDuration} from './move-lines.js';
 import {PALETTES,paletteById} from './marbling.js';
 const $=id=>document.getElementById(id);
 const chess=new Chess();let selected=null,busy=false,paused=false,nativePaused=false,pending=null,aiTimer,matchId,mode='computer';
 try{const saved=JSON.parse(localStorage.getItem('craftkit-chess-match') || localStorage.getItem('nexus-chess-match'));if(saved?.pgn)chess.loadPgn(saved.pgn);matchId=saved?.id;mode=saved?.mode==='friend'?'friend':'computer';}catch{chess.reset();}
 matchId ||= crypto.randomUUID();$('mode').value=mode;
-// The player's poured board (Board Studio): shown under play, and carried into the keepsake.
-let board=null,boardArt=null;
-function applyBoard(next){
-  board=next;boardArt=null;const el=$('chess-board'),frame=document.querySelector('.board-frame');
-  try{if(board){const look=boardLook(board);
-    el.style.setProperty('--board-image',`url(${boardImage(board,1024)})`);el.style.setProperty('--light-tint',look.lightTint);el.style.setProperty('--dark-tint',look.darkTint);el.style.setProperty('--board-filter',look.filter);
-    frame.style.setProperty('--frame-bg',look.frameBg);boardArt={image:boardImage(board,640),look};}}catch{board=null;}
-  $('design-board').textContent=board?'Repour your board':'Design your board';applySurface();
-}
-// The board surface: painted live by the match's own moves (the hero), the player's pour, or classic wood.
+// The board is always painted by this match: Lines (each move draws its path) or Ink (marbled water).
 const store=(key,value)=>{try{value===undefined?0:localStorage.setItem(key,value);return localStorage.getItem(key);}catch{return null;}};
-let surface=store('craftkit-chess-surface')||'painted';
+let style=store('craftkit-chess-art-style')==='ink'?'ink':'lines';
 // The match's inks: a palette id, or the player's own colors (saved as JSON).
 const savedInks=(()=>{const v=store('craftkit-chess-art-palette');try{return v?.startsWith('{')?JSON.parse(v):v;}catch{return null;}})();
 const art=new MoveArt(savedInks||'atelier');
-try{art.attach($('board-art'));art.attach($('match-art-canvas'));}catch{surface=surface==='painted'?'classic':surface;}
-function applySurface(next){
-  if(next==='poured'&&!board){studio.open();return;}
-  if(next)surface=store('craftkit-chess-surface',next);
-  if(surface==='poured'&&!board)surface='painted';
-  const el=$('chess-board'),frame=document.querySelector('.board-frame');
-  el.classList.toggle('painted',surface==='painted');el.classList.toggle('marbled',surface==='poured');
-  frame.classList.toggle('custom-frame',surface==='poured');frame.classList.toggle('surface-painted',surface==='painted');
-  document.querySelectorAll('[data-surface]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.surface===surface));
+let inkReady=true;
+try{art.attach($('board-art'));art.attach($('match-art-canvas'));}catch{inkReady=false;style='lines';}
+document.querySelector('.board-frame').classList.add('surface-painted');$('chess-board').classList.add('painted');
+// Lines are drawn into every view at once; only the newest move animates, unless the whole match is replaying.
+const lineViews=()=>[$('board-lines'),$('art-lines'),inkSheet?.dialog.querySelector('.ink-preview .lines')].filter(Boolean);
+let linesShown='';
+function drawLines(animate='none',msPerMove){
+  const history=chess.history({verbose:true}),key=history.map(m=>m.san).join()+'|'+art.palette.id+JSON.stringify(art.palette.inks);
+  if(animate==='none'&&key===linesShown)return;
+  const svg=linesSvg(history,art.palette,{animate,msPerMove});linesShown=animate==='none'?key:'';
+  for(const view of lineViews())view.innerHTML=svg;
 }
-document.querySelectorAll('[data-surface]').forEach(b=>b.onclick=()=>{applySurface(b.dataset.surface);feedback('light');});
-const studio=initBoardStudio({onApply(next){applyBoard(next);applySurface(next?'poured':surface==='poured'?'painted':surface);render();}});
-// The art panel: painted (live marbling) or lines (the original move-path drawing), in any palette.
-let artStyle='painted';
-function setArtStyle(next){artStyle=next;$('match-art-canvas').hidden=next!=='painted';$('match-preview').hidden=next==='painted';document.querySelectorAll('[data-art]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.art===next));}
-document.querySelectorAll('[data-art]').forEach(b=>b.onclick=()=>{setArtStyle(b.dataset.art);feedback('light');});
+function setStyle(next){
+  if(next==='ink'&&!inkReady)return;
+  style=next;store('craftkit-chess-art-style',next);
+  const lines=next==='lines';
+  $('board-lines').hidden=!lines;$('board-art').hidden=lines;$('art-lines').hidden=!lines;$('match-art-canvas').hidden=lines;
+  $('chess-board').classList.toggle('lines',lines);
+  document.querySelectorAll('[data-style]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.style===next));
+  if(inkSheet){inkSheet.dialog.querySelector('.ink-preview canvas').hidden=lines;inkSheet.dialog.querySelector('.ink-preview .lines').hidden=!lines;}
+  linesShown='';drawLines();
+}
+document.querySelectorAll('[data-style]').forEach(b=>b.onclick=()=>{setStyle(b.dataset.style);feedback('light');});
 document.querySelector('.art-palettes').innerHTML=PALETTES.map(p=>`<button data-art-palette="${p.id}" aria-label="${p.name} inks" title="${p.name}" style="background:conic-gradient(${p.inks.slice(0,4).map(([,h],i)=>`${h} ${i*25}% ${(i+1)*25}%`).join(',')})"></button>`).join('');
 const markPalette=()=>{
   document.querySelectorAll('[data-art-palette]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.artPalette===art.palette.id));
   const [blackPieces,whitePieces,whitePawns,blackPawns]=art.palette.inks.map(([,h])=>h);
   $('ink-colors').querySelector('i').style.background=`conic-gradient(${whitePieces} 0 25%,${whitePawns} 0 50%,${blackPieces} 0 75%,${blackPawns} 0)`;
 };
-function setInks(palette){art.setPalette(palette);store('craftkit-chess-art-palette',art.palette.id==='custom'?JSON.stringify(art.palette):art.palette.id);markPalette();inkSheet?.sync();}
+function setInks(palette){art.setPalette(palette);linesShown='';drawLines();store('craftkit-chess-art-palette',art.palette.id==='custom'?JSON.stringify(art.palette):art.palette.id);markPalette();inkSheet?.sync();}
 document.querySelectorAll('[data-art-palette]').forEach(b=>b.onclick=()=>{setInks(b.dataset.artPalette);feedback('light');});
 // Ink colors: choose a palette or pick each side's ink, previewed live on this match.
 const INK_ROLES=[['White pieces',1],['White pawns',2],['Black pieces',0],['Black pawns',3],['Capture splash',4],['Paper','paper']];
@@ -58,7 +56,7 @@ function openInkSheet(){
     const d=document.createElement('dialog');d.id='ink-sheet';d.setAttribute('aria-label','Ink colors');
     d.innerHTML=`<div class="studio-card"><div class="studio-head"><div><span class="chess-eyebrow">INK COLORS</span><h2>Choose your inks.</h2></div><button class="studio-close" data-close aria-label="Close">×</button></div>
       <p class="studio-lede">Each piece paints with its side's ink as it moves. Changes repaint your match right away.</p>
-      <div class="ink-preview"><canvas aria-label="Your match in these inks" role="img"></canvas></div>
+      <div class="ink-preview"><canvas aria-label="Your match in these inks" role="img"></canvas><div class="lines" aria-label="Your match in these inks" role="img"></div></div>
       <span class="studio-label">YOUR INKS <small>Tap a color to pick your own.</small></span>
       <div class="studio-custom ink-roles">${INK_ROLES.map(([name,key])=>`<label class="custom-color"><input type="color" data-ink="${key}" aria-label="${name} ink"><span>${name}</span></label>`).join('')}</div>
       <span class="studio-label">PALETTES</span>
@@ -78,31 +76,41 @@ function openInkSheet(){
       d.querySelectorAll('[data-ink-palette]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.inkPalette===art.palette.id));
     }};
   }
-  inkSheet.sync();inkSheet.dialog.showModal();art.draw();
+  inkSheet.sync();inkSheet.dialog.showModal();setStyle(style);art.draw();
 }
 $('ink-colors').onclick=()=>{openInkSheet();feedback('light');};
 markPalette();
-$('art-replay').onclick=()=>{setArtStyle('painted');art.replay(chess.history({verbose:true}),{msPerMove:Math.min(380,Math.max(140,9000/Math.max(1,chess.history().length)))});feedback('light');};
+const paceFor=n=>Math.min(380,Math.max(140,9000/Math.max(1,n)));
+$('art-replay').onclick=()=>{const history=chess.history({verbose:true}),pace=paceFor(history.length);if(style==='lines')drawLines('all',pace);else art.replay(history,{msPerMove:pace});feedback('light');};
 const result=()=>chess.isCheckmate()?'checkmate':chess.isStalemate()?'stalemate':chess.isDraw()?'draw':'in-progress';
-function artSvg(){return `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720"><image href="${art.image(768)}" width="720" height="720" preserveAspectRatio="none"/></svg>`;}
+function artSvg(){
+  if(style==='lines')return linesSvg(chess.history({verbose:true}),art.palette,{size:720});
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720"><image href="${art.image(768)}" width="720" height="720" preserveAspectRatio="none"/></svg>`;
+}
+const PROMPTS={
+  lines:'A fine-line artwork drawn by the moves of a chess match: every colored line traces a real piece\'s path from where it stood to where it landed, small dots mark where each piece began, and rings mark captures and the checkmate. Keep every line, ring, dot and color of the attached reference on its paper ground. Crisp, elegant lines as a flat textile print. No chessboard, no chess pieces, no logos or text.',
+  ink:'Hand-marbled paper whose ink trails were made by the moves of a chess match: every piece began as a drop of ink and dragged its color across the water each time it moved. Keep the composition, the trails, the drops and the colors of the attached reference. Real pigment on paper with fine feathered detail. No chessboard, no chess pieces, no logos or text.',
+};
 function keepsakeFor(kind){
   const history=chess.history({verbose:true}),n=history.length;
-  return {offering:chess.isGameOver()?'match-victory':'move-art',type:kind,title:'Chess Atelier / '+Math.ceil(n/2)+' moves, painted',sourceEventId:'match-'+matchId+'-'+n+'-painted',
-    prompt:'Hand-marbled paper whose ink trails were made by the moves of a chess match: every piece began as a drop of ink and dragged its color across the water each time it moved. Keep the composition, the trails, the drops and the colors of the attached reference. Real pigment on paper with fine feathered detail. No chessboard, no chess pieces, no logos or text.',
-    design:{referenceSvg:artSvg(),pgn:chess.pgn(),fen:chess.fen(),moves:history.map(m=>({from:m.from,to:m.to,color:m.color,san:m.san})),modelId:'nonpareil-hand-marbled',colors:art.palette.inks.map(([,h])=>h),artPalette:art.palette.name},
-    story:[{event:'chess-match',moves:n,result:result(),painted:true}]};
+  return {offering:chess.isGameOver()?'match-victory':'move-art',type:kind,title:'Chess Atelier / '+Math.ceil(n/2)+' moves, painted',sourceEventId:'match-'+matchId+'-'+n+'-'+style,
+    prompt:PROMPTS[style],
+    design:{referenceSvg:artSvg(),pgn:chess.pgn(),fen:chess.fen(),moves:history.map(m=>({from:m.from,to:m.to,color:m.color,san:m.san})),...(style==='ink'?{modelId:'nonpareil-hand-marbled'}:{}),colors:art.palette.inks.map(([,h])=>h),artPalette:art.palette.name,artStyle:style},
+    story:[{event:'chess-match',moves:n,result:result(),painted:style}]};
 }
 let sheetArt=null;
 const matchCheckout=initMatchCheckout({gameId:'chess-atelier',pause(){paused=true;clearTimeout(aiTimer);busy=false;},resume(){paused=false;scheduleComputer();}});
-function openKeep(outcome){
+function openKeep(outcome,headline){
   const n=chess.history().length;if(n<4)return;
   const history=chess.history({verbose:true});
-  matchCheckout.open({preferred:$('match-format').value,matchKey:matchId+'-'+n+'-'+art.palette.id,result:outcome,subtitle:`${Math.ceil(n/2)} moves, painted by the pieces themselves. Keep it as something real.`,keepsake:keepsakeFor,
-    paint(canvas){sheetArt||=(()=>{const a=new MoveArt(art.palette);a.attach(canvas);return a;})();sheetArt.setPalette(art.palette);return sheetArt.replay(history,{msPerMove:Math.min(380,Math.max(120,8000/n))});}});
+  matchCheckout.open({preferred:$('match-format').value,matchKey:matchId+'-'+n+'-'+style+'-'+art.palette.id,result:outcome,headline,subtitle:`${Math.ceil(n/2)} moves, painted by the pieces themselves. Keep it as something real.`,keepsake:keepsakeFor,
+    paint(canvas,linesBox){const pace=Math.min(380,Math.max(120,8000/n));
+      canvas.hidden=style==='lines';linesBox.hidden=style!=='lines';
+      if(style==='lines'){linesBox.innerHTML=linesSvg(history,art.palette,{animate:'all',msPerMove:pace});return;}
+      sheetArt||=(()=>{const a=new MoveArt(art.palette);a.attach(canvas);return a;})();sheetArt.setPalette(art.palette);return sheetArt.replay(history,{msPerMove:pace});}});
 }
-$('design-board').onclick=()=>studio.open();
-applyBoard(loadBoard());
 const persist=()=>{try{localStorage.setItem('craftkit-chess-match',JSON.stringify({id:matchId,pgn:chess.pgn(),mode}));}catch{}};
+let linesCount=-1;
 function render(){
   const history=chess.history({verbose:true}),last=history.at(-1),legal=selected?chess.moves({square:selected,verbose:true}):[];
   $('chess-board').innerHTML=chess.board().flatMap((row,r)=>row.map((p,c)=>{const square=String.fromCharCode(97+c)+(8-r),allowed=legal.some(m=>m.to===square);return `<button data-square="${square}" class="square ${(r+c)%2?'dark':''} ${selected===square?'selected':''} ${last&&(last.from===square||last.to===square)?'last':''} ${allowed?'legal':''} ${p?.type==='k'&&p.color===chess.turn()&&chess.isCheck()?'check':''}" aria-label="${square}${p?', '+(p.color==='w'?'white':'black')+' '+({p:'pawn',k:'king',q:'queen',r:'rook',b:'bishop',n:'knight'})[p.type]:', empty'}${allowed?', legal destination':''}" aria-pressed="${selected===square}">${p?`<span class="piece ${p.color==='w'?'white':'black'}" aria-hidden="true">${pieceSvg(p.type,p.color,square)}</span>`:''}${c===0?`<span class="coord" style="top:3px;bottom:auto">${8-r}</span>`:''}${r===7?`<span class="coord" style="left:auto;right:4px">${String.fromCharCode(97+c)}</span>`:''}</button>`;})).join('');
@@ -113,7 +121,8 @@ function render(){
   else if(chess.isDraw())status='Match drawn. Your moves still made something unique.';
   else if(chess.isCheck())status+=(chess.turn()==='w'?' White':' Black')+' is in check.';
   $('status').textContent=status;$('opponent').textContent=mode==='computer'?'The Atelier':'Your friend';$('opponent-detail').textContent=mode==='computer'?'Computer · a gentle challenge':'Pass & play · black pieces';
-  $('match-preview').innerHTML=matchArtwork(history,boardArt);art.sync(history);$('match-format').disabled=history.length<4;$('move-count').textContent=Math.ceil(history.length/2)+(history.length>2?' moves':' move');
+  art.sync(history);drawLines(history.length===linesCount+1?'last':'none');linesCount=history.length;
+  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===mode));$('match-format').disabled=history.length<4;$('move-count').textContent=Math.ceil(history.length/2)+(history.length>2?' moves':' move');
   $('keep-match').disabled=history.length<4;$('keep-match').innerHTML=history.length<4?'Play 2 moves each to make your keepsake <span>↗</span>':'Keep this painting <span>↗</span>';
   $('finish-match').disabled=history.length<4;$('finish-match').textContent=chess.isGameOver()?'Keep this match ↗':'Finish & keep ↗';
   $('history-empty').hidden=history.length>0;$('undo').disabled=history.length===0||busy;
@@ -145,16 +154,17 @@ function scheduleComputer(skipRender=false){
 }
 $('undo').onclick=()=>{clearTimeout(aiTimer);stopReplay();chess.undo();if(mode==='computer'&&chess.turn()==='b')chess.undo();selected=null;busy=false;render();scheduleComputer();};
 $('new-game').onclick=()=>$('reset-match').showModal();$('reset-cancel').onclick=()=>$('reset-match').close();$('reset-confirm').onclick=()=>{clearTimeout(aiTimer);stopReplay();chess.reset();matchId=crypto.randomUUID();selected=null;busy=false;$('reset-match').close();render();};
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{if(replaying)return;$('mode').value=b.dataset.mode;$('mode').onchange();feedback('light');});
 $('mode').onchange=()=>{mode=$('mode').value;render();scheduleComputer();};
 $('saved').onclick=openCollection;
 $('export-match').onclick=()=>{const data=chess.pgn(),name='chess-atelier-'+matchId.slice(0,8)+'.pgn';if(window.webkit?.messageHandlers?.craftkitExport){const base64=btoa(data);window.webkit.messageHandlers.craftkitExport.postMessage({filename:name,base64});return;}const url=URL.createObjectURL(new Blob([data],{type:'application/x-chess-pgn'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-initForge({gameId:'chess-atelier',pause(){paused=true;clearTimeout(aiTimer);busy=false;},resume(){paused=false;scheduleComputer();},preview(){return matchArtwork(chess.history({verbose:true}),boardArt);}});
+initForge({gameId:'chess-atelier',pause(){paused=true;clearTimeout(aiTimer);busy=false;},resume(){paused=false;scheduleComputer();},preview(){return matchArtwork(chess.history({verbose:true}));}});
 $('keep-match').onclick=()=>openKeep(result());
 $('finish-match').onclick=()=>openKeep(chess.isGameOver()?result():'resigned');
 let replaying=false,replayRun=0;
 function stopReplay(){replayRun++;replaying=false;}
 const classics=document.createElement('dialog');classics.id='classics';
-classics.innerHTML=`<div class="studio-card"><div class="studio-head"><div><span class="chess-eyebrow">REPLAY A CLASSIC</span><h2>Watch a game paint itself.</h2></div><button class="studio-close" data-close aria-label="Close">×</button></div><p class="studio-lede">A famous game plays out on the board while its moves paint the ink beneath. It replaces your current match.</p>${CLASSICS.map(c=>`<button class="classic-option" data-classic="${c.id}"><strong>${c.name}</strong><small>${c.detail}</small></button>`).join('')}</div>`;
+classics.innerHTML=`<div class="studio-card"><div class="studio-head"><div><span class="chess-eyebrow">REPLAY A CLASSIC</span><h2>Watch a game paint itself.</h2></div><button class="studio-close" data-close aria-label="Close">×</button></div><p class="studio-lede">A famous game plays out on the board while every move draws itself. It replaces your current match.</p>${CLASSICS.map(c=>`<button class="classic-option" data-classic="${c.id}"><strong>${c.name}</strong><small>${c.detail}</small></button>`).join('')}</div>`;
 document.body.append(classics);
 classics.querySelector('[data-close]').onclick=()=>classics.close();
 $('replay-classic').onclick=()=>classics.showModal();
@@ -162,7 +172,7 @@ classics.querySelectorAll('[data-classic]').forEach(b=>b.onclick=async()=>{
   const game=CLASSICS.find(c=>c.id===b.dataset.classic),sans=new Chess();sans.loadPgn(game.pgn);
   const moves=sans.history();classics.close();clearTimeout(aiTimer);
   const run=++replayRun;replaying=true;mode='friend';$('mode').value=mode;chess.reset();matchId=crypto.randomUUID();selected=null;busy=false;
-  applySurface('painted');setArtStyle('painted');render();document.querySelector('.board-frame').scrollIntoView({behavior:'smooth',block:'center'});
+  render();document.querySelector('.board-frame').scrollIntoView({behavior:'smooth',block:'center'});
   await new Promise(r=>setTimeout(r,900));
   for(const san of moves){
     if(run!==replayRun)return;
@@ -170,9 +180,11 @@ classics.querySelectorAll('[data-classic]').forEach(b=>b.onclick=async()=>{
     performMove({from:move.from,to:move.to,promotion:move.promotion});
     await new Promise(r=>setTimeout(r,520));
   }
-  if(run===replayRun)replaying=false;render();
+  if(run!==replayRun)return;
+  replaying=false;render();
+  if(!chess.isGameOver()&&game.ending)setTimeout(()=>openKeep('resigned',game.ending),900);
 });
 addEventListener('craftkit-native-pause',e=>{nativePaused=!!e.detail.paused;if(nativePaused){clearTimeout(aiTimer);busy=false;}else scheduleComputer();});
-render();scheduleComputer();
+setStyle(style);render();scheduleComputer();
 
-$('export-art').onclick=()=>{const data=matchArtwork(chess.history({verbose:true})),filename='chess-art-'+matchId.slice(0,8)+'.svg';if(window.webkit?.messageHandlers?.craftkitExport){window.webkit.messageHandlers.craftkitExport.postMessage({filename,base64:btoa(unescape(encodeURIComponent(data)))});return;}const url=URL.createObjectURL(new Blob([data],{type:'image/svg+xml'})),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+$('export-art').onclick=()=>{const data=artSvg(),filename='chess-art-'+matchId.slice(0,8)+'.svg';if(window.webkit?.messageHandlers?.craftkitExport){window.webkit.messageHandlers.craftkitExport.postMessage({filename,base64:btoa(unescape(encodeURIComponent(data)))});return;}const url=URL.createObjectURL(new Blob([data],{type:'image/svg+xml'})),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};

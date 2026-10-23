@@ -22,7 +22,7 @@ export function initMatchCheckout({gameId, pause = () => {}, resume = () => {}})
         <div><span class="chess-eyebrow mc-eyebrow">MATCH COMPLETE</span><h2 class="mc-title"></h2><p class="mc-sub"></p></div>
         <button class="studio-close" data-act="close" aria-label="Close">×</button>
       </div>
-      <div class="mc-art"><img class="mc-design" alt="Your match"><canvas class="mc-canvas" role="img" aria-label="Your match, painting itself"></canvas><img class="mc-product" alt="Arcade product preview"><div class="mc-sheen"></div></div>
+      <div class="mc-art"><img class="mc-design" alt="Your match"><canvas class="mc-canvas" role="img" aria-label="Your match, painting itself"></canvas><div class="mc-lines" role="img" aria-label="Your match, drawing itself" hidden></div><img class="mc-product" alt="Arcade product preview"><div class="mc-sheen"></div></div>
       <div class="mc-formats" role="group" aria-label="Make it as"></div>
       <div class="mc-status" role="status" aria-live="polite"><span class="mc-dot"></span><span class="mc-status-text"></span></div>
       <div class="mc-price" hidden><div><strong class="mc-amount"></strong><small class="mc-detail"></small></div><small class="mc-maker"></small></div>
@@ -155,15 +155,15 @@ export function initMatchCheckout({gameId, pause = () => {}, resume = () => {}})
       if (config?.matchKey !== next.matchKey) runs = {};
       config = next; pause();
       $('.mc-eyebrow').textContent = next.result === 'in-progress' ? 'YOUR MATCH' : 'MATCH COMPLETE';
-      $('.mc-title').textContent = HEADLINES[next.result] || HEADLINES['in-progress'];
+      $('.mc-title').textContent = next.headline || HEADLINES[next.result] || HEADLINES['in-progress'];
       $('.mc-sub').textContent = next.subtitle;
       $('.mc-product').classList.remove('shown');
       // A game that can paint itself replays its own painting while Arcade works.
       const painting = typeof next.paint === 'function';
-      $('.mc-canvas').hidden = !painting; $('.mc-design').hidden = painting;
+      $('.mc-canvas').hidden = !painting; $('.mc-lines').hidden = true; $('.mc-design').hidden = painting;
       if (!painting) $('.mc-design').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(next.keepsake('scarf').design.referenceSvg);
       if (!dialog.open) dialog.showModal();
-      if (painting) try { next.paint($('.mc-canvas')); } catch { $('.mc-canvas').hidden = true; $('.mc-design').hidden = false; $('.mc-design').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(next.keepsake('scarf').design.referenceSvg); }
+      if (painting) try { next.paint($('.mc-canvas'), $('.mc-lines')); } catch { $('.mc-canvas').hidden = true; $('.mc-design').hidden = false; $('.mc-design').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(next.keepsake('scarf').design.referenceSvg); }
       try { formats = (await supportedFormats())?.filter(f => f !== 'pendant') ?? ['scarf', 'pillow']; } catch { formats = ['scarf', 'pillow']; }
       if (turn !== opened) return;
       if (!formats.length) formats = ['scarf'];

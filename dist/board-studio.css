@@ -193,3 +193,28 @@
 
 /* Keep these sheets clear of the iOS app's floating native controls (close, title, menu) at the top. */
 .chess-app dialog#board-studio, .chess-app dialog#match-checkout, .chess-app dialog#ink-sheet, .chess-app dialog#classics { max-height: calc(100dvh - 150px); }
+
+/* Lines: each move draws its path. pathLength="1" lets one dash animation draw any curve. */
+@keyframes mv-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes mv-pop { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: none; } }
+.mv-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation-name: mv-draw; animation-fill-mode: forwards; animation-timing-function: cubic-bezier(.45, .1, .2, 1); }
+.mv-pop { opacity: 0; animation-name: mv-pop; animation-fill-mode: forwards; animation-timing-function: cubic-bezier(.3, 1.4, .5, 1); transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) { .mv-draw, .mv-pop { animation: none; stroke-dashoffset: 0; opacity: 1; } }
+
+#board-lines { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; }
+#board-lines svg, #art-lines svg, .mc-lines svg, .ink-preview .lines svg { width: 100%; height: 100%; display: block; }
+#board-lines[hidden], #board-art[hidden] { display: none !important; }
+/* Lighter tints in Lines mode, so the drawing reads through the squares. */
+#chess-board.painted.lines .square { background: rgba(255, 249, 238, .06); }
+#chess-board.painted.lines .square.dark { background: rgba(28, 19, 14, .2); }
+.match-art.hero #art-lines { position: absolute; inset: 0; }
+.mc-lines { position: absolute; inset: 0; background: #f4ece0; }
+.ink-preview { position: relative; }
+.ink-preview .lines { position: absolute; inset: 0; }
+.ink-preview [hidden] { display: none; }
+
+/* Play against: always visible beside the board. */
+.opponent-switch { grid-column: 1 / -1; display: flex; gap: 3px; padding: 3px; border-radius: 999px; background: #e7ddcf; }
+.opponent-switch button { flex: 1; min-height: 44px; border: 0; border-radius: 999px; background: transparent; font-size: 14px; font-weight: 600; color: var(--muted); }
+.opponent-switch button[aria-pressed="true"] { background: #fffaf2; color: var(--ink); box-shadow: 0 2px 6px #3a2a2220; }
+.art-controls .quiet-button { flex: 1; }
