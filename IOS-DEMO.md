@@ -1,5 +1,7 @@
 # CraftKit Arcade iOS demo
 
+**We WON SECOND PLACE out of 40 teams with CraftKit** at Shopping 3.0: the AI Commerce Hackathon with Arcade on October 11, 2026, during SF Tech Week in San Francisco. This native iOS demo shows how a player's adventures, artwork, and chess moves become personalized physical keepsakes through CraftKit and Arcade.
+
 The SwiftUI launcher contains Relic Island, Pattern Garden (the floating fairy / nighttime art journey), and Chess Atelier. The first two use Three.js; Chess Atelier uses a responsive chess board and the chess.js rules engine. All three run in WKWebView and share the CraftKit backend. User-created artwork and progress persist in WKWebView storage. Physical keepsakes persist in SQLite locally or D1 on the hosted Site.
 
 ## Start the demo

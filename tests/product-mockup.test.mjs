@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import vm from 'node:vm';
 import {productMockup,productPreview} from '../dist/product-mockup.js';
+import {createEarnedRewards} from '../dist/earned-rewards.js';
 import {sigilSvg} from '../dist/sigils.js';
 
 test('real vendor previews take precedence; simulations stay explicitly illustrative',()=>{
@@ -23,7 +24,7 @@ test('each supported product uses its photographic base and embeds artwork as an
 });
 test('manufacturing references remain flat artwork without mockup photography, and preserve the selected engraving',()=>{
  const source=readFileSync(new URL('../dist/keepsakes.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace(/export /g,'');
- const context=vm.createContext({sigilSvg,document:{getElementById(){}}});vm.runInContext(source,context);
+ const context=vm.createContext({sigilSvg,createEarnedRewards,document:{getElementById(){}}});vm.runInContext(source,context);
  for(const type of ['scarf','pillow','woven']){
   const svg=vm.runInContext(`printArtwork('${type}')`,context);assert.ok(svg.startsWith('<svg'));assert.ok(!svg.includes('mockup-'));assert.ok(!svg.includes('<image'));
  }

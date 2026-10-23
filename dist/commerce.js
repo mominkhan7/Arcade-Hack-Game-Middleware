@@ -54,7 +54,7 @@ function render() {
   }
   if (session.phase==='quote') {
     const product=session.product,quote=session.quote;
-    frame(`<div class="quote-heading"><span>${session.simulated ? 'EXAMPLE QUOTE' : 'ARCADE PRICE'}</span><strong>${usd(product.unitPrice)} <small>/ item</small></strong></div><div class="maker-line"><span>Made by</span><strong>${escape(product.maker.name)}</strong><small>${session.simulated ? 'Fictional maker for this simulation' : 'Arcade maker'}</small></div>${!session.simulated ? `<p class="caption">${escape(product.selectionLabel)}</p>` : ''}${options()}${session.quantity>1?`<div class="price-line"><span>Items × ${session.quantity}</span><strong>${usd(quote.subtotal)}</strong></div>`:''}<p class="caption">${session.simulated ? 'Sample pricing.' : 'Shipping, tax, service fees, and applicable discounts appear in Arcade checkout.'}</p>${warning()}<button id="forge-checkout" class="primary">${session.simulated ? 'Open demo checkout' : 'Bring it home'}</button><details class="recipe"><summary>Quote details</summary><p class="caption">Valid until ${new Date(quote.expiresAt).toLocaleTimeString()}.</p><button id="forge-refresh" class="secondary">Refresh quote</button></details>`);
+    frame(`<div class="quote-heading"><span>${session.simulated ? 'EXAMPLE QUOTE' : 'ARCADE PRICE'}</span><strong>${usd(product.unitPrice)} <small>/ item</small></strong></div><button id="forge-checkout" class="primary">${session.simulated ? 'Buy now / demo' : 'Buy now'}</button><div class="maker-line"><span>Made by</span><strong>${escape(product.maker.name)}</strong><small>${session.simulated ? 'Fictional maker for this simulation' : 'Arcade maker'}</small></div>${!session.simulated ? `<p class="caption">${escape(product.selectionLabel)}</p>` : ''}${options()}${session.quantity>1?`<div class="price-line"><span>Items × ${session.quantity}</span><strong>${usd(quote.subtotal)}</strong></div>`:''}<p class="caption">${session.simulated ? 'Sample pricing.' : 'Shipping, tax, service fees, and applicable discounts appear in Arcade checkout.'}</p>${warning()}<details class="recipe"><summary>Quote details</summary><p class="caption">Valid until ${new Date(quote.expiresAt).toLocaleTimeString()}.</p><button id="forge-refresh" class="secondary">Refresh quote</button></details>`);
     attachOptions(); $('forge-checkout').onclick=()=>perform(async()=>{const record=await client.openCheckout(session.id);session=record;if(!record.simulated)openCheckoutUrl();return record;}); $('forge-refresh').onclick=()=>perform(()=>client.refreshQuote(session.id)); return;
   }
   if (session.phase==='checkout' && !session.simulated) {
@@ -95,13 +95,13 @@ export function initForge(c) {
     if(event.detail?.status==='failed')showError(new Error('Payment could not be opened. Please try again.'));
     else await perform(()=>client.getKeepsake(session.id));
   });
-  window.addEventListener('craftkit-open-collection',openCollection);
+  window.addEventListener('craftkit-open-collection',()=>c.collection?c.collection():openCollection());
   callbacks=c;client=new CraftKitClient({gameId:c.gameId||'relic-island'});
   document.body.insertAdjacentHTML('beforeend',`<dialog id="forge-dialog"><div class="sheet"><div class="sheet-heading"><span class="eyebrow">CRAFTKIT / YOUR KEEPSAKE</span><button id="forge-close" class="close" aria-label="Close keepsake forge">×</button></div><div class="simulation-banner">SIMULATED EXPERIENCE · NO REAL CHARGE OR ORDER</div><div id="forge-steps"></div><span id="forge-phase" class="eyebrow"></span><h2 id="forge-name">Your keepsake</h2><div id="forge-image" class="product-preview"></div><details id="forge-reference" class="recipe" hidden><summary>Your original design</summary><div id="forge-comparison" class="design-comparison"></div></details><p id="forge-error" class="category-note" role="alert" hidden></p><div id="forge-body"></div><button id="forge-keep-playing" class="secondary">Keep playing</button><details class="recipe integration-trace"><summary>How this keepsake was made</summary><pre id="forge-trace"></pre></details></div></dialog><dialog id="craftkit-collection"><div class="sheet"><div class="sheet-heading"><h2>Saved keepsakes</h2><button id="craftkit-collection-close" class="close" aria-label="Close saved keepsakes">×</button></div><p class="caption">Your designs and orders, saved for this game.</p><div id="craftkit-collection-list"></div></div></dialog>`);
   $('forge-close').onclick=closeForge;$('forge-keep-playing').onclick=closeForge;$('forge-dialog').addEventListener('cancel',e=>{e.preventDefault();closeForge();});
   const closeCollection=()=>{opening++;$('craftkit-collection').close();callbacks.resume();};
   $('craftkit-collection-close').onclick=closeCollection;$('craftkit-collection').addEventListener('cancel',e=>{e.preventDefault();closeCollection();});
-  if($('start-keepsakes'))$('start-keepsakes').onclick=openCollection;
+  if($('start-keepsakes'))$('start-keepsakes').onclick=c.collection||openCollection;
   const actions=document.querySelector('.header-actions')||$('craftkit-actions');
   if(actions){const button=document.createElement('button');button.textContent='▣';button.className='icon-button';button.title='Saved keepsakes';button.setAttribute('aria-label','Saved keepsakes');button.onclick=openCollection;actions.append(button);}
 }
@@ -116,7 +116,7 @@ export async function openForge(config) {
     if (catalog.mode === 'live' && config.type !== 'pendant') design.referencePng = await rasterizeDesign(design.referenceSvg);
     const record=await client.createKeepsake({recipe:config.type,title:config.title,prompt:config.prompt,sourceEventId:config.sourceEventId||'studio-'+config.type,story:config.story||[],design});
     if(current!==opening)return;session=await client.getKeepsake(record.id);if(current!==opening)return;render();
-    if (!session.simulated && session.phase==='draft') { await generate(); return; }
+    if ((config.purchaseIntent||!session.simulated) && session.phase==='draft') { await generate(); return; }
     if(['pattern','product'].includes(session.phase))observe();
   }catch(error){if(current!==opening)return;showError(error);$('forge-body').innerHTML='<button id="forge-retry" class="primary">Try saving again</button>';$('forge-retry').onclick=()=>openForge(config);}
 }
@@ -137,10 +137,12 @@ export async function supportedFormats() {
   return Object.keys(match).filter(type=>catalog.categories.items.some(category=>match[type].test(category.name)));
 }
 
-export async function openSavedKeepsake(id) {
+export function listSavedKeepsakes(){return client.listKeepsakes();}
+
+export async function openSavedKeepsake(id,{purchaseIntent=false}={}) {
   const current=++opening;callbacks.pause();session=null;
   $('forge-error').hidden=true;$('forge-dialog').showModal();$('forge-body').textContent='Loading keepsake…';
-  try{const record=await client.getKeepsake(id);if(current!==opening)return;session=record;render();if(['pattern','product'].includes(record.phase))observe();}
+  try{const record=await client.getKeepsake(id);if(current!==opening)return;session=record;render();if(purchaseIntent && record.phase==='draft'){await generate();return;}if(['pattern','product'].includes(record.phase))observe();}
   catch(error){if(current===opening)showError(error);}
 }
 

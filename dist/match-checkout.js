@@ -4,6 +4,7 @@
 import {CraftKitClient} from './craftkit-client.js';
 import {rasterizeDesign} from './design-reference.js';
 import {openSavedKeepsake, supportedFormats} from './commerce.js';
+import {productPreview} from './product-mockup.js';
 import {feedback} from './tactile.js';
 
 const escape = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
@@ -22,7 +23,7 @@ export function initMatchCheckout({gameId, pause = () => {}, resume = () => {}})
         <div><span class="chess-eyebrow mc-eyebrow">MATCH COMPLETE</span><h2 class="mc-title"></h2><p class="mc-sub"></p></div>
         <button class="studio-close" data-act="close" aria-label="Close">×</button>
       </div>
-      <div class="mc-art"><img class="mc-design" alt="Your match"><canvas class="mc-canvas" role="img" aria-label="Your match, painting itself"></canvas><div class="mc-lines" role="img" aria-label="Your match, drawing itself" hidden></div><img class="mc-product" alt="Arcade product preview"><div class="mc-sheen"></div></div>
+      <div class="mc-art"><img class="mc-design" alt="Your match"><canvas class="mc-canvas" role="img" aria-label="Your match, painting itself"></canvas><div class="mc-lines" role="img" aria-label="Your match, drawing itself" hidden></div><div class="mc-product" aria-label="Physical product preview"></div><div class="mc-sheen"></div></div>
       <div class="mc-formats" role="group" aria-label="Make it as"></div>
       <div class="mc-status" role="status" aria-live="polite"><span class="mc-dot"></span><span class="mc-status-text"></span></div>
       <div class="mc-price" hidden><div><strong class="mc-amount"></strong><small class="mc-detail"></small></div><small class="mc-maker"></small></div>
@@ -44,9 +45,9 @@ export function initMatchCheckout({gameId, pause = () => {}, resume = () => {}})
     const name = (NAMES[type] || type || 'keepsake').toLowerCase();
     dialog.querySelectorAll('[data-format]').forEach(b => b.setAttribute('aria-pressed', b.dataset.format === type));
     const ready = record && ['quote', 'checkout', 'order'].includes(phase);
-    const image = ready && !record.simulated && record.product?.imageUrl;
+    const image = ready && ['quote','checkout','order'].includes(phase);
     $('.mc-product').classList.toggle('shown', !!image);
-    if (image && $('.mc-product').getAttribute('src') !== image) $('.mc-product').src = image;
+    if(image){const previewKey=record.id+'-'+record.revision+'-'+(record.product?.imageUrl||'mockup');if($('.mc-product').dataset.previewKey!==previewKey){$('.mc-product').innerHTML=productPreview(record);$('.mc-product').dataset.previewKey=previewKey;}}
     $('.mc-art').classList.toggle('working', !ready && phase !== 'failed');
     const elapsed = run.started ? Math.round((Date.now() - run.started) / 1000) : 0;
     const status = {
@@ -60,6 +61,7 @@ export function initMatchCheckout({gameId, pause = () => {}, resume = () => {}})
       failed: run.error || record?.error || 'Arcade could not make this one.',
     }[phase] || 'Working…';
     $('.mc-status-text').textContent = status;
+    $('.mc-note').textContent=record?.simulated?'Demo product and sample price. No real payment or order.':'Review shipping and tax in Arcade checkout before paying. Your digital match stays yours.';
     $('.mc-status').dataset.state = ready ? 'ready' : phase === 'failed' ? 'failed' : 'working';
     $('.mc-price').hidden = !ready;
     if (ready) {
@@ -70,7 +72,7 @@ export function initMatchCheckout({gameId, pause = () => {}, resume = () => {}})
     const primary = $('.mc-primary');
     primary.disabled = !ready && phase !== 'failed';
     primary.innerHTML = phase === 'failed' ? 'Try again <span>↻</span>'
-      : phase === 'quote' ? `Bring it home · ${usd(record.quote?.subtotal)} <span>↗</span>`
+      : phase === 'quote' ? `${record.simulated?'Buy now / demo':'Buy now'} · ${usd(record.quote?.subtotal)} <span>↗</span>`
       : phase === 'checkout' ? 'Continue to checkout <span>↗</span>'
       : phase === 'order' ? 'Ordered ✓'
       : `Preparing your ${name}…`;
@@ -164,9 +166,9 @@ export function initMatchCheckout({gameId, pause = () => {}, resume = () => {}})
       if (!painting) $('.mc-design').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(next.keepsake('scarf').design.referenceSvg);
       if (!dialog.open) dialog.showModal();
       if (painting) try { next.paint($('.mc-canvas'), $('.mc-lines')); } catch { $('.mc-canvas').hidden = true; $('.mc-design').hidden = false; $('.mc-design').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(next.keepsake('scarf').design.referenceSvg); }
-      try { formats = (await supportedFormats())?.filter(f => f !== 'pendant') ?? ['scarf', 'pillow']; } catch { formats = ['scarf', 'pillow']; }
+      try { formats = (await supportedFormats())?.filter(f => ['scarf','pillow'].includes(f)) ?? ['scarf', 'pillow']; } catch(error) {if(turn!==opened)return;$('.mc-status-text').textContent=error.message;$('.mc-primary').textContent='Keepsakes unavailable';$('.mc-primary').disabled=true;return;}
       if (turn !== opened) return;
-      if (!formats.length) formats = ['scarf'];
+      if (!formats.length){type=null;$('.mc-formats').innerHTML='';$('.mc-status-text').textContent='Physical keepsakes are unavailable right now. Your digital match is yours to keep.';$('.mc-primary').textContent='Keepsakes unavailable';$('.mc-primary').disabled=true;$('.mc-price').hidden=true;return;}
       type = formats.includes(next.preferred) ? next.preferred : formats.includes(type) ? type : formats[0];
       $('.mc-formats').innerHTML = formats.map(f => `<button data-format="${f}">${escape(NAMES[f] || f)}</button>`).join('');
       $('.mc-formats').querySelectorAll('[data-format]').forEach(b => b.onclick = () => { type = b.dataset.format; prepare(type); show(); feedback('light'); });

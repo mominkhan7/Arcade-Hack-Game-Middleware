@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {jewelryPrompt} from '../dist/jewelry-design.js';
 import {webcrypto} from 'node:crypto';
 
 function game(formats=['pendant','scarf','pillow']) {
@@ -13,13 +14,13 @@ function game(formats=['pendant','scarf','pillow']) {
   const milestones=vm.runInNewContext(milestoneCode.replace('globalThis.milestones = milestones=','globalThis.milestones ='));
   const timers=[];let forgeConfig,forgeCallbacks;
   const context=vm.createContext({
-    console,structuredClone,crypto:webcrypto,performance:{now:()=>0},setTimeout:fn=>{timers.push(fn);return timers.length},clearTimeout(){},requestAnimationFrame(){},addEventListener(){},window:{addEventListener(){}},
+    console,jewelryPrompt,structuredClone,crypto:webcrypto,performance:{now:()=>0},setTimeout:fn=>{timers.push(fn);return timers.length},clearTimeout(){},requestAnimationFrame(){},addEventListener(){},window:{addEventListener(){}},
     document:{getElementById:element,querySelector:element,querySelectorAll:()=>[],createElement:node,addEventListener(){}},
     player:{position:{x:0,y:0,z:0},rotation:{y:0}},milestones,
     sigils:Object.fromEntries(['sun','moon','mountain','ocean'].map(name=>[name,{name,world:name}])),sigilSvg:()=>'<svg/>',feedback(){},burst(){},setWorldTheme(){},applySigilOutfit(){},updateTrail(){},resetPlayer(){},createCoins(){},canWalk:()=>true,render(){},shrineScreenPosition:()=>({visible:false}),
     appearance:{scarf:'#123456',coat:'#654321',pattern:'stars'},rug:{palette:'lagoon',tiles:Array(9).fill(0)},
     printArtwork:type=>`<svg>${type}</svg>`,productMockup:type=>`<svg>${type}</svg>`,productSvg:type=>`<svg>${type}</svg>`,openLoom(){},openStudio(){},prompt(){},forgeSnapshot:()=>null,
-    initKeepsakes(){},initForge:c=>{forgeCallbacks=c},openOffering:(id,c)=>{forgeConfig=c;forgeConfig.offering=id;forgeCallbacks.pause()},openForge:c=>{forgeConfig=c;forgeCallbacks.pause()},supportedFormats:async()=>formats
+    openEarnedCollection(){},recordEarnedReward(c){context.lastEarned=structuredClone(c);},initKeepsakes(){},initForge:c=>{forgeCallbacks=c},openOffering:(id,c)=>{forgeConfig=c;forgeConfig.offering=id;forgeCallbacks.pause()},openForge:c=>{forgeConfig=c;forgeCallbacks.pause()},supportedFormats:async()=>formats
   });
   vm.runInContext(readFileSync(new URL('../dist/game.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,''),context);
   const run=code=>vm.runInContext(code,context);
@@ -55,6 +56,12 @@ test('declining or closing an opted-in preview returns to exploration and does n
 
 test('ten coins unlock an ornate pendant with a distinct design brief and stable achievement source',async()=>{
  const g=game();g.run("state={...state,phase:'playing',tier:3,collected:10,target:10,puzzleSolved:true,earned:false};awaken()");g.timers.at(-1)();await g.settle();
- assert.equal(g.element('arcade-forge').textContent,'Preview ornate sigil pendant');g.element('arcade-forge').onclick();
- assert.equal(g.forgeConfig.design.pendantStyle,'ornate');assert.equal(g.forgeConfig.design.emblem,'sun');assert.match(g.forgeConfig.sourceEventId,/-milestone-10$/);assert.match(g.forgeConfig.prompt,/filigree/);assert.doesNotMatch(g.forgeConfig.prompt,/platinum/i);
+ assert.equal(g.element('arcade-forge').textContent,'Buy ornate sigil pendant');g.element('arcade-forge').onclick();
+ assert.equal(g.forgeConfig.design.pendantStyle,'ornate');assert.equal(g.forgeConfig.design.emblem,'sun');assert.match(g.forgeConfig.sourceEventId,/-milestone-10$/);assert.match(g.forgeConfig.prompt,/filigree/);assert.match(g.forgeConfig.prompt,/sculptural/);assert.equal(g.forgeConfig.design.designLanguageVersion,2);assert.doesNotMatch(g.forgeConfig.prompt,/platinum/i);
+});
+
+test('an earned product remains identified by its original milestone before the next chapter',async()=>{
+ const g=game();g.run("state={...state,phase:'playing',collected:3,target:3,puzzleSolved:true};awaken()");g.timers.at(-1)();await g.settle();
+ assert.equal(g.run('lastEarned.type'),'pendant');assert.equal(g.run('lastEarned.design.coins'),3);
+ g.element('continue').onclick();assert.equal(g.run('state.target'),6);assert.equal(g.run('lastEarned.design.coins'),3);assert.equal(g.run('lastEarned.offering'),'achievement-emblem');
 });

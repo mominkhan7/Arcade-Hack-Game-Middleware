@@ -1,0 +1,29 @@
+/* Keep chess and marbling hooks intact; group secondary actions in Options. */
+.chess-app .match-options .board-tools{display:flex;flex-wrap:wrap;margin:10px 0;gap:8px}.chess-app .match-options .surface-switch{flex:1}.chess-app .match-options .replay-classic{width:100%;text-align:left}.chess-app .match-options>summary{cursor:pointer}.chess-app .board-actions{flex-wrap:wrap}.chess-app .match-options{flex:1;min-width:120px}.chess-app .finish-match:disabled{display:none}.chess-app .match-art .mode-label:has(select:disabled),.chess-app #keep-match:disabled{display:none}.chess-app .keep-button>span{display:none}
+@media(max-width:650px){
+ .chess-app .chess-header{min-height:48px;padding:8px 16px}.chess-app .chess-header .quiet-button{min-height:40px;padding:8px 12px!important}.chess-app .chess-brand{font-size:11px;letter-spacing:1.5px}.chess-app .brand-mark{width:24px;height:24px;font-size:19px}
+ .chess-app .chess-main{padding:12px 8px 28px}.chess-app .chess-intro h1{font-size:30px;margin:0 0 4px;line-height:1.1;letter-spacing:-.8px}.chess-app .chess-intro p{font-size:12px;margin:0 0 12px}.chess-app .board-column>.player-row{min-height:38px;padding:0 10px 7px;gap:8px}.chess-app .player-row:has(.ivory){padding:8px 10px 0}.chess-app .player-icon{height:28px;width:28px;font-size:22px}.chess-app .player-row strong{font-size:12px}.chess-app .player-row small{font-size:10px;margin-top:1px}
+ .chess-app .game-status{min-height:38px;margin:5px 0 0;padding:0 10px}.chess-app #status{font-size:11px}.chess-app .board-actions{display:flex;gap:7px;margin:5px 6px;align-items:flex-start}.chess-app .board-actions>.quiet-button,.chess-app .match-options>summary{min-height:44px;padding:10px 12px!important;font-size:12px!important;border:1px solid #c4ad943a;border-radius:12px;background:#ffffff55}.chess-app .match-options{min-width:90px}.chess-app .match-options>summary{text-align:center}.chess-app .match-options[open]{background:#ede4d7;border-radius:12px;padding-bottom:8px}.chess-app .match-options .mode-label{margin:8px}.chess-app .match-options .board-tools{padding:0 8px}.chess-app .match-options .surface-switch{flex-basis:100%}.chess-app .match-options .ink-colors{min-height:44px}.chess-app .finish-match:not(:disabled){flex-basis:100%;order:3}
+ .chess-app .chess-layout{gap:18px}.chess-app .match-art.hero{padding:16px;border-radius:18px}.chess-app .match-art.hero h2{font-size:25px;margin:12px 0 7px}.chess-app .match-art.hero p{font-size:12px;line-height:1.5;margin:0 0 12px}.chess-app .art-stage{max-width:230px;margin:12px auto}.chess-app .match-art .mode-label{padding:7px 10px}.chess-app .match-art>small{font-size:11px;margin-top:8px}.chess-app .move-log{padding-top:16px}.chess-app .move-log>div{flex-wrap:wrap;gap:6px}.chess-app .move-log>div>.chess-eyebrow{flex-basis:100%}
+ .native-shell .chess-app .chess-intro{display:none}.native-shell .chess-app .chess-main{padding-top:calc(var(--native-top) + 6px)}
+}
+.chess-app .art-options{margin:12px 0;border-top:1px solid #c4ad943a}.chess-app .art-options>summary{cursor:pointer;min-height:44px;padding:12px 0;font-size:12px;color:#665349}.chess-app .art-options .art-controls{margin-top:5px}
+
+/* The launch sheet fills the web view; the native game title stays above it. */
+.chess-app #chess-start{inset:0;width:100%;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;background:radial-gradient(ellipse at 80% 15%,#ead9c9,#f5f0e7 70%);color:#30241f;box-shadow:none;overflow-y:auto}
+.chess-app #chess-start::backdrop{background:#f5f0e7}
+.chess-start-content{box-sizing:border-box;min-height:100%;max-width:420px;margin:auto;padding:max(86px,calc(env(safe-area-inset-top) + 78px)) 28px max(30px,env(safe-area-inset-bottom));display:flex;flex-direction:column;justify-content:center;align-items:stretch;text-align:center}
+.chess-start-piece{font-family:Georgia,serif;font-size:82px;line-height:1.1;color:#723832;margin-bottom:22px}
+.chess-start-content h2{font-family:'Instrument Serif',Georgia,serif;font-size:40px;font-weight:400;line-height:1.05;letter-spacing:-1px;margin:0 0 12px;color:#30241f}
+.chess-start-content p{font-size:14px;line-height:1.5;color:#665349;margin:0 0 24px}
+.chess-app .chess-start-content .mode-label{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border:1px solid #c4ad9466;border-radius:14px;margin:0;font-size:13px;white-space:nowrap}
+.chess-app .chess-start-content select{font-size:14px;min-height:44px;width:150px;max-width:65%;background:transparent;color:#30241f}
+.chess-app .chess-start-content .keep-button{background:#723832;color:#fff5e8;margin:14px 0 12px;min-height:54px;font-size:15px;border-radius:14px;padding:14px;justify-content:center;text-align:center}
+.chess-start-content small{color:#665349;font-size:11px}
+.chess-app .chess-intro{display:none}
+@media(max-width:650px){.chess-app .match-art.hero{display:block}.chess-app .match-column{min-width:0}.chess-app .board-actions>.design-board{flex:1}.chess-app .board-actions>.quiet-button{white-space:nowrap}.chess-app .match-options{flex:0 0 auto}.chess-app .match-options[open]{flex-basis:100%}}
+@media(max-height:600px){.chess-start-piece{font-size:60px;margin-bottom:14px}.chess-start-content h2{font-size:34px}.chess-start-content p{margin-bottom:16px}}
+
+html:has(#chess-start[open]),body:has(#chess-start[open]){overflow:hidden}
+
+.chess-app #start-new-match[hidden]{display:none}.chess-app #start-new-match{margin:0 0 12px;min-height:44px;color:#723832}.chess-app .board-actions>#new-game{flex:1}

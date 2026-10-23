@@ -13,7 +13,12 @@ export class CraftKitClient {
         body: input === undefined ? undefined : JSON.stringify(input), signal: AbortSignal.timeout(120000),
       });
     } catch { throw new Error('Keepsake service is unavailable. Your design is still in the game; try again.'); }
-    const body = await response.json();
+    let body;
+    try {body=await response.json();}
+    catch {
+      const error=new Error(response.status===401?'Your demo connection expired. Reopen the game after reconnecting CraftKit to the demo server.':'Keepsake service returned an unreadable response. Your saved designs are safe; try again.');
+      error.status=response.status;throw error;
+    }
     if (!response.ok) { const error = new Error(body.error || 'Keepsake request failed.'); error.status = response.status; throw error; }
     return body;
   }

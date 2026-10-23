@@ -1,7 +1,8 @@
+import {jewelryPrompt} from './jewelry-design.js';
 import {productMockup} from './product-mockup.js';
 import {feedback} from './tactile.js';
 import {player,createCoins,canWalk,render,resetPlayer,burst,setWorldTheme,shrineScreenPosition} from './world.js';
-import {initKeepsakes,updateTrail,milestones,productSvg,openLoom,openStudio,appearance,rug,applySigilOutfit,prompt,printArtwork} from './keepsakes.js';
+import {initKeepsakes,updateTrail,recordEarnedReward,openEarnedCollection,milestones,productSvg,openLoom,openStudio,appearance,rug,applySigilOutfit,prompt,printArtwork} from './keepsakes.js';
 import {initForge,openForge,forgeSnapshot,supportedFormats,openOffering} from './commerce.js';
 import {sigils,sigilSvg} from './sigils.js';
 let pausedFrom='playing',nativePaused=false;
@@ -31,13 +32,14 @@ async function updateRewardOffer(item){
   $('reward-offer').hidden=true;
   try{const formats=await supportedFormats();if(turn!==rewardOfferTurn||state.phase!=='reward')return;
     if(formats&&!formats.includes(item.type))return;
-    $('arcade-forge').textContent='Preview '+item.physicalTitle.toLowerCase();
-    $('reward-offer-note').textContent=item.pendantStyle==='ornate'?'Intricate engraving, inspired by your ten-coin achievement. Review the actual product and price.':'Your earned design, made physical. Review the actual product and price.';
+    $('arcade-forge').textContent='Buy '+item.physicalTitle.toLowerCase();
+    $('reward-offer-note').textContent=item.pendantStyle==='ornate'?'Intricate engraving, inspired by your ten-coin achievement. Review the actual product and price.':'Unlocked and saved in your collection. Choose this keepsake to see its preview and price.';
     $('reward-offer').hidden=false;
   }catch{/* Keep the earned reward visible even when commerce is unavailable. */}
 }
 function awaken(){if(state.phase!=='playing'||!ready()||!nearShrine())return;feedback('success');state.phase='revealing';clearMovement();burst(0,0,60);tone(880);notify('Relic unlocked.');revealTimer=setTimeout(()=>{
   state.phase='reward';state.earned=true;const emblem=emblems[state.emblem],item=milestones[state.tier];
+  recordEarnedReward(earnedOffering(item));updateTrail();
   $('reward-symbol').innerHTML=sigilSvg(state.emblem);$('reward-title').textContent=emblem.name+' / '+item.title;
   $('reward-origin').textContent=state.collected+' coins collected · Ancient echo restored';
   $('reward-story').textContent=item.description;
@@ -61,8 +63,9 @@ function continueJourney(){
   state.phase='playing';state.coins.forEach(c=>c.locked=c.id>=state.target);update();$('game').focus();
 }
 initKeepsakes({info:snapshot,pause:()=>{if(state.phase!=='paused')pausedFrom=state.phase;state.phase='paused';clearMovement()},resume:()=>{state.phase=pausedFrom;if(state.phase==='reward'&&!$('reward-dialog').open)$('reward-dialog').showModal();else $('game').focus()},woven:()=>notify('Your weaving pattern is saved. Preview a scarf whenever you like.')});
-initForge({pause:()=>{if(state.phase!=='paused')pausedFrom=state.phase;state.phase='paused';clearMovement()},resume:()=>{if(pausedFrom==='reward')continueJourney();else{state.phase=pausedFrom;$('game').focus()}},preview:productSvg});
-$('arcade-forge').onclick=()=>{const item=milestones[state.tier];$('reward-dialog').close();openOffering(item.pendantStyle==='ornate'?'achievement-evolution':item.type==='pendant'?'achievement-emblem':item.woven?'crafted-pattern':'avatar-portrait',{sourceEventId:state.runId+'-milestone-'+state.target,design:{sigil:state.emblem,emblem:state.emblem,pendantStyle:item.pendantStyle||'classic',coins:state.collected,rug:structuredClone(rug),appearance:structuredClone(appearance),referenceSvg:printArtwork(item.woven?'woven':item.type,state.emblem,item.metal),printArtworkSvg:printArtwork(item.woven?'woven':item.type,state.emblem,item.metal)},story:[{event:'milestone-earned',coins:state.collected,sigil:state.emblem},{event:'echo-solved'}],type:item.type,title:emblems[state.emblem].name+' / '+item.physicalTitle,emblem:state.emblem,metal:item.metal,prompt:item.woven?`Silk scarf with the attached ${rug.palette} mountain weaving pattern. Preserve the colors, geometric peaks and composition.`:item.type==='pendant'?`A coin pendant inspired by the player's earned ${state.emblem} relic, with an engraved ${state.emblem} sigil${item.pendantStyle==='ornate'?', framed by intricate radial filigree, a beaded inner border and a double engraved rim':' and a clean minimal rim'}. Use the supported catalog material.`:item.type==='scarf'?`A scarf inspired by the explorer's ${appearance.scarf} and cream ${appearance.pattern} pattern, matching the reference.`:`A decorative pillow with the explorer portrait in the reference, including their ${appearance.coat} coat and ${appearance.scarf} scarf.`})};
+initForge({collection:openEarnedCollection,pause:()=>{if(state.phase!=='paused')pausedFrom=state.phase;state.phase='paused';clearMovement()},resume:()=>{if(pausedFrom==='reward')continueJourney();else{state.phase=pausedFrom;$('game').focus()}},preview:productSvg});
+function earnedOffering(item){return {offering:item.pendantStyle==='ornate'?'achievement-evolution':item.type==='pendant'?'achievement-emblem':item.woven?'crafted-pattern':'avatar-portrait', sourceEventId:state.runId+'-milestone-'+state.target,design:{sigil:state.emblem,emblem:state.emblem,pendantStyle:item.pendantStyle||'classic',designLanguageVersion:2,coins:state.collected,rug:structuredClone(rug),appearance:structuredClone(appearance),referenceSvg:printArtwork(item.woven?'woven':item.type,state.emblem,item.metal),printArtworkSvg:printArtwork(item.woven?'woven':item.type,state.emblem,item.metal)},story:[{event:'milestone-earned',coins:state.collected,sigil:state.emblem},{event:'echo-solved'}],type:item.type,title:emblems[state.emblem].name+' / '+item.physicalTitle,emblem:state.emblem,metal:item.metal,prompt:item.woven?`Silk scarf with the attached ${rug.palette} mountain weaving pattern. Preserve the colors, geometric peaks and composition.`:item.type==='pendant'?jewelryPrompt(state.emblem,item.pendantStyle):item.type==='scarf'?`A scarf inspired by the explorer's ${appearance.scarf} and cream ${appearance.pattern} pattern, matching the reference.`:`A decorative pillow with the explorer portrait in the reference, including their ${appearance.coat} coat and ${appearance.scarf} scarf.`};}
+$('arcade-forge').onclick=()=>{const config=earnedOffering(milestones[state.tier]);$('reward-dialog').close();openOffering(config.offering,{...config,purchaseIntent:true});};
 $('continue').onclick=continueJourney;
 
 document.querySelectorAll('[data-emblem]').forEach(b=>b.querySelector('span').innerHTML=sigilSvg(b.dataset.emblem));document.querySelectorAll('[data-symbol]').forEach(b=>b.innerHTML=sigilSvg(puzzleSigils[Number(b.dataset.symbol)])+'<span>'+sigils[puzzleSigils[Number(b.dataset.symbol)]].name+'</span>');chooseEmblem('sun');update();$('loading').hidden=true;$('start-dialog').showModal();requestAnimationFrame(frame);

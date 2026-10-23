@@ -1,8 +1,14 @@
 # CraftKit
 
-Three playable experiences and **CraftKit**, a shared middleware layer that turns a player's design or achievement into a saved keepsake and a physical-product commerce journey.
+## 🏆 We WON SECOND PLACE out of 40 teams
 
-This is an Arcade hackathon project exploring a simple idea: **the object is more meaningful when the player has a story behind it.** Games own the experience and capture the design; CraftKit owns the reusable design-to-order lifecycle.
+CraftKit won **2nd place out of 40 teams** at **Shopping 3.0: the AI Commerce Hackathon with Arcade**, held October 11, 2026, during SF Tech Week in San Francisco.
+
+**We built a toolkit that turns the way you play into physical keepsakes you can own.** Your flight through a game becomes a scarf pattern. Your adventure unlocks a personalized pendant. Your chess moves become artwork. CraftKit connects those moments to Arcade's product generation, real product previews and prices, hosted checkout, and order tracking.
+
+The project combines playable games, a reusable game integration SDK and backend, and a native iOS demo. Games capture the player's achievements and original designs; CraftKit handles the shared journey from saved design to physical-product order.
+
+The idea: **the object is more meaningful when the player has a story behind it.**
 
 ## What we built and why
 
