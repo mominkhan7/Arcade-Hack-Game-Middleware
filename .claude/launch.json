@@ -4,16 +4,30 @@
     {
       "name": "arcade-preview",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "preview"],
+      "runtimeArgs": [
+        "run",
+        "preview"
+      ],
       "port": 4174,
       "url": "http://127.0.0.1:4174"
     },
     {
       "name": "ink-and-water",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["ink-and-water/server/server.mjs"],
+      "runtimeArgs": [
+        "ink-and-water/server/server.mjs"
+      ],
       "port": 8787,
       "url": "http://127.0.0.1:8787"
+    },
+    {
+      "name": "chess-atelier",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "chess-atelier/server/server.mjs"
+      ],
+      "port": 8790,
+      "url": "http://127.0.0.1:8790"
     }
   ]
 }

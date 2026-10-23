@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#F6F1E7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Chess Atelier</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main id="app">
+
+    <!-- Home -->
+    <section class="view" id="home" data-view="home">
+      <header class="home-head">
+        <div class="mark" aria-hidden="true"><svg viewBox="0 0 8 8"><path d="M1.5 6.5Q2 3 4 3.5T6.5 1.5" fill="none" stroke="currentColor" stroke-width=".5" stroke-linecap="round"/><circle cx="1.5" cy="6.5" r=".7" fill="currentColor"/><circle cx="6.5" cy="1.5" r="1.1" fill="none" stroke="currentColor" stroke-width=".4"/></svg></div>
+        <h1>Chess Atelier</h1>
+        <p class="tagline">Every game draws itself.</p>
+      </header>
+
+      <figure class="hero">
+        <div class="frame"><div class="art" id="hero-art"></div></div>
+        <figcaption><strong id="hero-name">The Opera Game</strong><span id="hero-detail">Morphy · Paris 1858</span></figcaption>
+      </figure>
+
+      <p class="lede">Play a game and every move leaves a line in its piece's ink. When it ends, your game is a one-of-one artwork, and Arcade can make it into something real.</p>
+
+      <div class="starts">
+        <button class="start" data-start="friend"><span class="start-icon" aria-hidden="true">♟</span><span><strong>Play a friend</strong><small>Pass the phone. Every move draws.</small></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="start" data-start="computer"><span class="start-icon" aria-hidden="true">♞</span><span><strong>Play the computer</strong><small>A friendly opponent who never gets tired.</small></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="start" data-start="legends"><span class="start-icon" aria-hidden="true">♛</span><span><strong>Replay a legend</strong><small>Watch famous games draw themselves.</small></span><span class="chev" aria-hidden="true">›</span></button>
+      </div>
+
+      <button class="resume" id="resume" hidden><span>Continue your game</span><small id="resume-detail"></small></button>
+      <button class="text-link" id="open-gallery">Your gallery <span id="gallery-count"></span></button>
+    </section>
+
+    <!-- Legends -->
+    <section class="view" id="legends" data-view="legends" hidden>
+      <nav class="bar"><button class="icon-btn" data-back aria-label="Back">‹</button><div class="bar-title"><strong>Replay a legend</strong></div><span class="icon-btn spacer"></span></nav>
+      <p class="section-lede">Five famous games. Pick one and watch it draw itself, move by move.</p>
+      <div class="legend-list" id="legend-list"></div>
+    </section>
+
+    <!-- Game -->
+    <section class="view" id="game" data-view="game" hidden>
+      <nav class="bar">
+        <button class="icon-btn" data-back aria-label="Back">‹</button>
+        <div class="bar-title"><strong id="game-title">Play a friend</strong><small id="game-status">White to move</small></div>
+        <button class="icon-btn ink-btn" id="ink-btn" aria-label="Change inks"><span class="ink-dots" id="ink-dots"></span></button>
+      </nav>
+
+      <div class="board-wrap">
+        <div class="board" id="board" role="grid" aria-label="Chess board">
+          <div class="squares" id="squares"></div>
+          <div class="art" id="board-art"></div>
+          <div class="pieces" id="pieces"></div>
+        </div>
+      </div>
+
+      <div class="seg" role="group" aria-label="View">
+        <button data-show="board" aria-pressed="true">Board</button>
+        <button data-show="art" aria-pressed="false">Drawing only</button>
+      </div>
+
+      <div class="moves" id="moves" aria-label="Moves"></div>
+
+      <div class="controls" id="play-controls">
+        <button class="ghost" id="undo">Undo</button>
+        <button class="primary" id="finish">Frame it</button>
+      </div>
+      <div class="controls player" id="legend-controls" hidden>
+        <button class="ghost round" id="lg-start" aria-label="Back to start">⏮</button>
+        <button class="ghost round" id="lg-prev" aria-label="Previous move">‹</button>
+        <button class="primary round big" id="lg-play" aria-label="Play">▶</button>
+        <button class="ghost round" id="lg-next" aria-label="Next move">›</button>
+        <button class="ghost round speed" id="lg-speed" aria-label="Playback speed">1×</button>
+      </div>
+      <p class="legend-note" id="legend-note" hidden></p>
+    </section>
+
+    <!-- Reveal -->
+    <section class="view" id="reveal" data-view="reveal" hidden>
+      <nav class="bar"><button class="icon-btn" data-back aria-label="Back">‹</button><div class="bar-title"><small id="reveal-eyebrow">CHECKMATE</small></div><button class="icon-btn" id="reveal-home" aria-label="Home">⌂</button></nav>
+      <h2 class="reveal-title" id="reveal-title">Checkmate.</h2>
+      <p class="reveal-sub" id="reveal-sub"></p>
+      <figure class="print">
+        <div class="mat"><div class="art" id="reveal-art"></div></div>
+        <figcaption id="reveal-caption"></figcaption>
+      </figure>
+      <div class="tune">
+        <div class="swatches" id="reveal-swatches" role="radiogroup" aria-label="Inks"></div>
+        <div class="seg small" role="group" aria-label="Background">
+          <button data-grid="none">Pure</button><button data-grid="lines">Grid</button><button data-grid="board">Board</button>
+        </div>
+      </div>
+      <div class="controls three">
+        <button class="ghost" id="replay-drawing">↻ Replay</button>
+        <button class="ghost" id="download">Download</button>
+        <button class="ghost" id="new-game">New game</button>
+      </div>
+      <button class="primary wide" id="make-it">Make it real <span aria-hidden="true">→</span></button>
+      <p class="fine">Saved to your gallery.</p>
+    </section>
+
+    <!-- Make it real -->
+    <section class="view" id="make" data-view="make" hidden>
+      <nav class="bar"><button class="icon-btn" data-back aria-label="Back">‹</button><div class="bar-title"><strong>Make it real</strong><small id="make-sub"></small></div><span class="icon-btn spacer"></span></nav>
+      <div class="mode-chip" id="mode-chip" hidden>Demo · Arcade simulated, nothing is charged</div>
+
+      <div id="make-pick">
+        <p class="section-lede">Arcade turns your drawing into a print-ready pattern, and an independent maker builds it to order.</p>
+        <div class="products" id="products" role="radiogroup" aria-label="Product"></div>
+        <button class="primary wide" id="create">Create with Arcade</button>
+      </div>
+
+      <div id="make-progress" hidden>
+        <div class="stage"><div class="mock big" id="stage-mock"></div></div>
+        <ol class="steps" id="steps">
+          <li data-step="upload"><span class="dot"></span><span>Sending your drawing</span></li>
+          <li data-step="pattern"><span class="dot"></span><span>Arcade is designing the pattern</span><em class="timer"></em></li>
+          <li data-step="product"><span class="dot"></span><span>A maker is preparing your <b class="pname">scarf</b></span><em class="timer"></em></li>
+          <li data-step="ready"><span class="dot"></span><span>Ready to order</span></li>
+        </ol>
+        <div class="price-card" id="price-card" hidden>
+          <div><strong id="price">$104.00</strong><small id="price-detail"></small></div>
+          <small id="maker"></small>
+        </div>
+        <button class="primary wide" id="order" hidden>Order</button>
+        <button class="text-link" id="pick-other" hidden>Choose a different product</button>
+        <p class="error" id="make-error" role="alert" hidden></p>
+      </div>
+    </section>
+
+    <!-- Gallery -->
+    <section class="view" id="gallery" data-view="gallery" hidden>
+      <nav class="bar"><button class="icon-btn" data-back aria-label="Back">‹</button><div class="bar-title"><strong>Your gallery</strong></div><span class="icon-btn spacer"></span></nav>
+      <div class="gallery-grid" id="gallery-grid"></div>
+      <p class="empty" id="gallery-empty">Finished games land here. Play one and it will draw itself.</p>
+    </section>
+  </main>
+
+  <dialog class="sheet" id="ink-sheet" aria-label="Inks">
+    <div class="sheet-card">
+      <div class="sheet-head"><strong>Inks</strong><button class="icon-btn" data-close aria-label="Close">×</button></div>
+      <p class="sheet-lede">Every piece draws in its own ink. Change it any time; the whole game redraws.</p>
+      <div class="palette-grid" id="palette-grid"></div>
+    </div>
+  </dialog>
+
+  <dialog class="sheet" id="order-sheet" aria-label="Order placed">
+    <div class="sheet-card center">
+      <div class="check" aria-hidden="true">✓</div>
+      <strong class="order-title" id="order-title">Ordered</strong>
+      <p id="order-detail"></p>
+      <button class="primary wide" data-close>Done</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
