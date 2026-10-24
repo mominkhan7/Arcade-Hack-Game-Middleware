@@ -26,7 +26,7 @@ Checkout is always simulated, so nothing can be bought by accident.
 2. **Make it yours.** Pick the art medium, the board color and the piece colors (presets or any custom color). A live preview repaints with every change, and the pieces on the board take the colors they paint with.
 3. **Board.** Every move paints itself under the pieces. "Drawing only" hides the pieces; the color dot reopens the style screen.
 4. **Framed.** When the game ends (or you tap Frame it), the painting replays in a print mat. Switch medium, background (pure, grid or board) or colors; download a PNG; it is saved to your gallery.
-5. **Make it real.** Pick a silk scarf, linen pillow or pocket square. The server sends the 2048 px painting to Arcade, Arcade designs the pattern, a maker builds it, and you see the price and maker.
+5. **Memorialize it.** One tap from the finished game: Arcade designs keepsakes from the painting (Original, Repeat or Bordered) and shows them on eight products. Pick one, choose a size and buy. For now the designs, products, prices and checkout are placeholders that run in the page, and nothing is charged; the server's `/api` routes are ready for real Arcade calls when access returns.
 
 ## Mediums
 

@@ -129,36 +129,25 @@
         <button class="ghost" id="download">Download</button>
         <button class="ghost" id="new-game">New game</button>
       </div>
-      <button class="primary wide" id="make-it">Make it real <span aria-hidden="true">→</span></button>
+      <button class="primary wide" id="make-it">Memorialize it <span aria-hidden="true">→</span></button>
       <p class="fine">Saved to your gallery.</p>
     </section>
 
-    <!-- Make it real -->
+    <!-- Memorialize: Arcade designs keepsakes from the painting; pick one and buy it -->
     <section class="view" id="make" data-view="make" hidden>
-      <nav class="bar"><button class="icon-btn" data-back aria-label="Back">‹</button><div class="bar-title"><strong>Make it real</strong><small id="make-sub"></small></div><span class="icon-btn spacer"></span></nav>
-      <div class="mode-chip" id="mode-chip" hidden>Demo · Arcade simulated, nothing is charged</div>
+      <nav class="bar"><button class="icon-btn" data-back aria-label="Back">‹</button><div class="bar-title"><strong>Memorialize it</strong><small id="make-sub"></small></div><span class="icon-btn spacer"></span></nav>
 
-      <div id="make-pick">
-        <p class="section-lede">Arcade turns your drawing into a print-ready pattern, and an independent maker builds it to order.</p>
-        <div class="products" id="products" role="radiogroup" aria-label="Product"></div>
-        <button class="primary wide" id="create">Create with Arcade</button>
+      <div id="designing">
+        <div class="stage working"><div class="mock big scarf" id="designing-mock"><div class="surface"></div></div></div>
+        <p class="designing-text" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><span id="designing-text">Arcade is designing keepsakes from your game…</span></p>
       </div>
 
-      <div id="make-progress" hidden>
-        <div class="stage"><div class="mock big" id="stage-mock"></div></div>
-        <ol class="steps" id="steps">
-          <li data-step="upload"><span class="dot"></span><span>Sending your drawing</span></li>
-          <li data-step="pattern"><span class="dot"></span><span>Arcade is designing the pattern</span><em class="timer"></em></li>
-          <li data-step="product"><span class="dot"></span><span>A maker is preparing your <b class="pname">scarf</b></span><em class="timer"></em></li>
-          <li data-step="ready"><span class="dot"></span><span>Ready to order</span></li>
-        </ol>
-        <div class="price-card" id="price-card" hidden>
-          <div><strong id="price">$104.00</strong><small id="price-detail"></small></div>
-          <small id="maker"></small>
-        </div>
-        <button class="primary wide" id="order" hidden>Order</button>
-        <button class="text-link" id="pick-other" hidden>Choose a different product</button>
-        <p class="error" id="make-error" role="alert" hidden></p>
+      <div id="options" hidden>
+        <p class="placeholder-chip">Sample items · Arcade designs and prices will appear here</p>
+        <h3 class="pick-title">Arcade’s designs</h3>
+        <div class="design-chips" id="designs" role="radiogroup" aria-label="Design"></div>
+        <h3 class="pick-title">Keepsakes</h3>
+        <div class="keepsakes" id="keepsakes"></div>
       </div>
     </section>
 
@@ -171,12 +160,24 @@
   </main>
 
 
-  <dialog class="sheet" id="order-sheet" aria-label="Order placed">
-    <div class="sheet-card center">
-      <div class="check" aria-hidden="true">✓</div>
-      <strong class="order-title" id="order-title">Ordered</strong>
-      <p id="order-detail"></p>
-      <button class="primary wide" data-close>Done</button>
+  <dialog class="sheet" id="product-sheet" aria-labelledby="ps-name">
+    <div class="sheet-card">
+      <div class="sheet-head"><span></span><button class="icon-btn" data-close aria-label="Close">×</button></div>
+      <div id="ps-shop">
+        <div class="ps-mock" id="ps-mock"></div>
+        <h2 class="ps-name" id="ps-name"></h2>
+        <p class="ps-detail" id="ps-detail"></p>
+        <div class="ps-sizes" id="ps-sizes" role="radiogroup" aria-label="Size"></div>
+        <div class="ps-meta"><span id="ps-maker"></span><span id="ps-ship">Made to order · ships in about 2 weeks</span></div>
+        <button class="primary wide" id="ps-buy">Buy now</button>
+        <p class="fine">Sample checkout. Nothing is charged.</p>
+      </div>
+      <div id="ps-done" class="center" hidden>
+        <div class="check" aria-hidden="true">✓</div>
+        <strong class="order-title" id="order-title">Ordered</strong>
+        <p id="order-detail"></p>
+        <button class="primary wide" data-close>Done</button>
+      </div>
     </div>
   </dialog>
 

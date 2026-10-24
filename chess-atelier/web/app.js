@@ -5,7 +5,7 @@ import {Chess, chooseMove} from './engine.js';
 import {pieceSvg} from './pieces.js';
 import {drawingSvg, drawDuration, paceFor} from './drawing.js';
 import {painterIn, paintingPng} from './paint.js';
-import {BOARDS, PIECES, MEDIUMS, DEFAULT_STYLE, cleanStyle, styleColors, isDark, mediumName} from './styles.js';
+import {BOARDS, PIECES, MEDIUMS, DEFAULT_STYLE, cleanStyle, isDark, mediumName} from './styles.js';
 import {CLASSICS, ERAS} from './classics.js';
 
 const $ = sel => document.querySelector(sel);
@@ -18,7 +18,6 @@ const store = {
 const uid = () => Math.random().toString(36).slice(2, 10);
 const historyOf = pgn => { const c = new Chess(); if (pgn) c.loadPgn(pgn); return c.history({verbose: true}); };
 const today = () => new Date().toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
-const money = p => p ? new Intl.NumberFormat(undefined, {style: 'currency', currency: p.currency || 'USD'}).format(Number(p.amount)) : '';
 const escape = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const SPEEDS = [{label: '1×', ms: 900}, {label: '2×', ms: 450}, {label: '4×', ms: 200}];
 const FILES = 'abcdefgh';
@@ -31,9 +30,6 @@ const state = {
   game: null,        // {id, mode, chess, legend, full, index, over, drawn}
   selected: null,
   piece: null,       // the framed game shown on the reveal screen
-  product: 'scarf',
-  config: null,
-  make: 0,           // bumps to cancel an in-flight Arcade run
   timers: {hero: 0, play: 0, frame: 0, computer: 0},
   speed: 0,
 };
@@ -44,7 +40,7 @@ function go(view) { if (state.view !== view) state.stack.push(state.view); show(
 function back() { show(state.stack.pop() || 'home'); }
 function show(view) {
   stopPlayback(); clearTimeout(state.timers.frame); clearTimeout(state.timers.hero);
-  if (view !== 'make') state.make++;
+  if (view !== 'make') memo.run++;
   state.view = view;
   $$('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
   window.scrollTo(0, 0);
@@ -452,161 +448,116 @@ $('#download').addEventListener('click', async () => {
 });
 $('#make-it').addEventListener('click', () => go('make'));
 
-// ---------- Make it real ----------
+// ---------- Memorialize ----------
+// One tap from a finished game: Arcade designs keepsakes from the painting, the player picks
+// one and buys it. Until Arcade API access returns, this runs entirely in the page with
+// placeholder designs, products and prices (clearly labeled); nothing is sent or charged.
+// To go live, replace designKeepsakes() with calls to the server's /api routes.
 
-const STEP_ORDER = ['upload', 'pattern', 'product', 'ready'];
-
-async function config() {
-  if (!state.config) {
-    try { state.config = await fetch('/api/config').then(r => { if (!r.ok) throw new Error(); return r.json(); }); }
-    catch { state.config = {mode: 'simulated', offline: true, products: OFFLINE_PRODUCTS}; }
-  }
-  return state.config;
-}
-
-// Without the Chess Atelier server (for example, opened from a shared link), Arcade is simulated in the page
-// with the same prices and timing as the server's simulation. Nothing is sent anywhere.
-const OFFLINE_PRODUCTS = [
-  {kind: 'scarf', name: 'Silk Scarf', detail: 'Silk twill · 36 × 36 in · hand-rolled hem', price: {amount: '104.00', currency: 'USD'}, maker: 'Odette'},
-  {kind: 'pillow', name: 'Linen Pillow', detail: 'Linen · 18 × 18 in · insert included', price: {amount: '81.35', currency: 'USD'}, maker: 'Odette'},
-  {kind: 'pocket-square', name: 'Pocket Square', detail: 'Silk · 16 × 16 in · hand-rolled hem', price: {amount: '98.00', currency: 'USD'}, maker: 'Odette'},
+const KEEPSAKES = [
+  {kind: 'scarf', name: 'Silk Scarf', detail: 'Silk twill with a hand-rolled hem. Your game drapes edge to edge.', maker: 'Odette',
+    sizes: [{label: '36 × 36 in', amount: 104}, {label: '27 × 27 in', amount: 86}]},
+  {kind: 'print', name: 'Framed Print', detail: 'Archival giclée on cotton rag, with a mat and an oak frame.', maker: 'Atelier Print Co.',
+    sizes: [{label: '12 × 12 in', amount: 68}, {label: '18 × 18 in', amount: 95}, {label: '24 × 24 in', amount: 140}]},
+  {kind: 'pillow', name: 'Linen Pillow', detail: 'Washed linen, printed both sides, insert included.', maker: 'Odette',
+    sizes: [{label: '18 × 18 in', amount: 81.35}, {label: '22 × 22 in', amount: 96}]},
+  {kind: 'tapestry', name: 'Wall Tapestry', detail: 'Heavy cotton canvas on a wooden hanging rod.', maker: 'Loomhouse Textiles',
+    sizes: [{label: '36 × 36 in', amount: 120}, {label: '50 × 50 in', amount: 165}]},
+  {kind: 'pocket-square', name: 'Pocket Square', detail: 'Silk with a hand-rolled hem, folded to show the mate.', maker: 'Odette',
+    sizes: [{label: '16 × 16 in', amount: 98}]},
+  {kind: 'throw', name: 'Throw Blanket', detail: 'Woven cotton jacquard, soft enough for the sofa.', maker: 'Loomhouse Textiles',
+    sizes: [{label: '50 × 60 in', amount: 145}]},
+  {kind: 'tote', name: 'Tote Bag', detail: 'Heavy canvas with the painting on the front.', maker: 'Harbor Canvas',
+    sizes: [{label: '15 × 16 in', amount: 38}]},
+  {kind: 'towel', name: 'Tea Towel', detail: 'Linen, hemmed with a hanging loop.', maker: 'Harbor Canvas',
+    sizes: [{label: '18 × 28 in', amount: 32}]},
 ];
-const offline = {pieces: new Map()};
-async function offlineApi(path, body) {
-  if (path === '/api/pieces') { const id = 'sim-' + uid(); offline.pieces.set(id, {image: body.image, started: Date.now()}); return {pieceId: id}; }
-  const piece = path.match(/^\/api\/pieces\/(.+)$/);
-  if (piece) {
-    const p = offline.pieces.get(piece[1]);
-    if (Date.now() - p.started < 7000) return {status: 'running'};
-    return {status: 'succeeded', patternId: piece[1], imageUrl: 'data:image/png;base64,' + p.image};
-  }
-  if (path === '/api/products') { await wait(4000); const o = OFFLINE_PRODUCTS.find(x => x.kind === body.kind); return {...o, productId: 'sim-product-' + uid(), simulated: true}; }
-  if (path === '/api/checkout') return {simulated: true, orderNumber: `CA-${Math.floor(100000 + Math.random() * 900000)}`, name: body.name, price: body.price, estimatedShip: 'Made to order and shipped in about 2 weeks'};
-  throw new Error('Not available offline');
-}
+const DESIGNS = [
+  {id: 'original', name: 'Original', blurb: 'The painting as played'},
+  {id: 'repeat', name: 'Repeat', blurb: 'A seamless four-up pattern'},
+  {id: 'bordered', name: 'Bordered', blurb: 'Framed in a paper margin'},
+];
+const usd = n => new Intl.NumberFormat(undefined, {style: 'currency', currency: 'USD'}).format(n);
+const memo = {run: 0, url: null, design: 'original', product: null, size: 0};
 
-function mock(kind, inner) { return `<div class="mock ${kind}"><div class="surface">${inner}</div></div>`; }
+/** The painting on a product, in one of Arcade's design treatments. */
+function surface(design, paper) {
+  if (design === 'repeat') return `<div class="fill tile" style="background-image:url(${memo.url})"></div>`;
+  if (design === 'bordered') return `<div class="fill bordered" style="background:${paper}"><img src="${memo.url}" alt=""></div>`;
+  return `<img class="fill" src="${memo.url}" alt="">`;
+}
+const mockup = (kind, design, paper, big = false) => `<div class="mock ${kind}${big ? ' big' : ''}"><div class="surface">${surface(design, paper)}</div></div>`;
+
+/** Placeholder for Arcade: paints the game at print size and returns its image. */
+async function designKeepsakes(piece) {
+  const [png] = await Promise.all([paintingPng(historyOf(piece.pgn), piece.style, {grid: piece.grid, size: 1024}), wait(2600)]);
+  const bytes = Uint8Array.from(atob(png), c => c.charCodeAt(0));
+  return URL.createObjectURL(new Blob([bytes], {type: 'image/png'}));
+}
 
 async function showMake() {
-  const p = state.piece;
+  const p = state.piece, run = ++memo.run;
   if (!p) return show('home');
-  $('#make-pick').hidden = false; $('#make-progress').hidden = true;
+  const moves = historyOf(p.pgn), steps = ['Arcade is designing keepsakes from your game…', 'Matching it to makers…', 'Pricing your keepsakes…'];
   $('#make-sub').textContent = `${p.title} · ${mediumName(p.style.medium)}`;
-  const art = drawingSvg(historyOf(p.pgn), p.style, {grid: p.grid});
-  let cfg;
-  try { cfg = await config(); } catch { $('#products').innerHTML = '<p class="error">Can’t reach the Chess Atelier server.</p>'; return; }
-  $('#mode-chip').hidden = cfg.mode !== 'simulated';
-  if (!cfg.products.some(o => o.kind === state.product)) state.product = cfg.products[0]?.kind;
-  $('#products').innerHTML = cfg.products.map(o => `<button class="product" role="radio" data-kind="${o.kind}" aria-checked="${o.kind === state.product}">
-    ${mock(o.kind, art)}
-    <span><strong>${escape(o.name)}</strong><small>${escape(o.detail)}</small><span class="from">${o.price ? money(o.price) : ''}</span></span>
-  </button>`).join('');
-  $$('.product').forEach(b => b.addEventListener('click', () => {
-    state.product = b.dataset.kind;
-    $$('.product').forEach(x => x.setAttribute('aria-checked', String(x === b)));
-    updateCreateLabel();
-  }));
-  updateCreateLabel();
-}
-function updateCreateLabel() {
-  const offer = state.config?.products.find(o => o.kind === state.product);
-  $('#create').textContent = offer ? `Create my ${offer.name.toLowerCase()} with Arcade` : 'Create with Arcade';
-}
-
-function setStep(step, timers = {}) {
-  const at = STEP_ORDER.indexOf(step);
-  $$('#steps li').forEach(li => {
-    const i = STEP_ORDER.indexOf(li.dataset.step);
-    li.classList.toggle('done', i < at || step === 'ready' && i === at);
-    li.classList.toggle('active', i === at && step !== 'ready');
-    const t = li.querySelector('.timer');
-    if (t) t.textContent = timers[li.dataset.step] ?? '';
-  });
-}
-
-$('#create').addEventListener('click', makeIt);
-$('#pick-other').addEventListener('click', () => { state.make++; showMake(); });
-
-async function makeIt() {
-  const run = ++state.make, live = () => run === state.make && state.view === 'make';
-  const p = state.piece, offer = state.config.products.find(o => o.kind === state.product);
-  const moves = historyOf(p.pgn);
-  $('#make-pick').hidden = true; $('#make-progress').hidden = false;
-  $('#price-card').hidden = true; $('#order').hidden = true; $('#pick-other').hidden = true; $('#make-error').hidden = true;
-  $$('.pname').forEach(n => { n.textContent = offer.name.toLowerCase(); });
-  $('.stage').classList.add('working');
-  $('#stage-mock').outerHTML = `<div class="mock big ${offer.kind}" id="stage-mock"><div class="surface"></div></div>`;
-  painterIn($('#stage-mock .surface')).paint(moves, p.style, {grid: p.grid, animate: 'all', msPerMove: paceFor(moves.length, 5)});
-
-  const timers = {}, since = {};
-  let current = 'upload';
-  const tick = setInterval(() => {
-    if (!live()) return clearInterval(tick);
-    for (const k of Object.keys(since)) timers[k] = `${Math.round((Date.now() - since[k]) / 1000)}s`;
-    setStep(current, timers);
-  }, 500);
-  const step = s => { if (since[current]) timers[current] = `${Math.round((Date.now() - since[current]) / 1000)}s`; delete since[current]; current = s; if (s !== 'ready') since[s] = Date.now(); setStep(s, timers); };
-
+  $('#designing').hidden = false; $('#options').hidden = true;
+  painterIn($('#designing-mock .surface')).paint(moves, p.style, {grid: p.grid, animate: 'all', msPerMove: paceFor(moves.length, 2.4)});
+  let k = 0;
+  $('#designing-text').textContent = steps[0];
+  const ticker = setInterval(() => { $('#designing-text').textContent = steps[Math.min(++k, steps.length - 1)]; }, 900);
   try {
-    step('upload');
-    const image = await paintingPng(moves, p.style, {grid: p.grid, size: 2048});
-    const {pieceId} = await api('/api/pieces', {image, colors: styleColors(p.style), medium: p.style.medium, title: p.title});
-    if (!live()) return;
-    step('pattern');
-    let piece;
-    for (;;) {
-      await wait(1500);
-      if (!live()) return;
-      piece = state.config.offline ? await offlineApi(`/api/pieces/${pieceId}`) : await fetch(`/api/pieces/${pieceId}`).then(r => r.json());
-      if (piece.status !== 'running') break;
-    }
-    if (piece.status !== 'succeeded') throw new Error(piece.message || 'Arcade could not finish this design');
-    $('#stage-mock .surface').innerHTML = `<img src="${escape(piece.imageUrl)}" alt="Arcade pattern">`;
-    step('product');
-    const product = await api('/api/products', {patternId: piece.patternId, kind: offer.kind});
-    if (!live()) return;
-    step('ready');
-    clearInterval(tick);
-    $('.stage').classList.remove('working');
-    if (product.images?.[0] && !product.simulated) $('#stage-mock .surface').innerHTML = `<img src="${escape(product.images[0])}" alt="${escape(product.name)} preview">`;
-    $('#price').textContent = money(product.price);
-    $('#price-detail').textContent = product.detail || '';
-    $('#maker').textContent = product.maker ? `Made by ${product.maker}` : '';
-    $('#price-card').hidden = false;
-    $('#order').hidden = false; $('#pick-other').hidden = false;
-    $('#pick-other').textContent = 'Choose a different product';
-    $('#order').textContent = `Order · ${money(product.price)}`;
-    $('#order').onclick = () => order(product);
-    haptic();
-  } catch (err) {
-    clearInterval(tick);
-    if (!live()) return;
-    $('.stage').classList.remove('working');
-    $('#make-error').textContent = err.message;
-    $('#make-error').hidden = false;
-    $('#pick-other').hidden = false;
-    $('#pick-other').textContent = 'Try again';
-  }
+    if (memo.url) URL.revokeObjectURL(memo.url);
+    memo.url = await designKeepsakes(p);
+  } catch { memo.url = null; }
+  clearInterval(ticker);
+  if (run !== memo.run || state.view !== 'make') return;
+  if (!memo.url) { $('#designing-text').textContent = 'Could not prepare your keepsakes. Go back and try again.'; return; }
+  $('#designing').hidden = true; $('#options').hidden = false;
+  renderKeepsakes();
+  haptic();
 }
 
-async function order(product) {
-  $('#order').disabled = true;
-  try {
-    const result = await api('/api/checkout', {productId: product.productId, name: product.name, price: product.price});
-    $('#order-title').textContent = `Order ${result.orderNumber}`;
-    $('#order-detail').textContent = `${result.name} · ${money(result.price)}. ${result.simulated ? 'Demo order, nothing was charged. ' : ''}${result.estimatedShip}.`;
-    $('#order-sheet').showModal();
-  } catch (err) { toast(err.message); }
-  $('#order').disabled = false;
+function renderKeepsakes() {
+  const paper = cleanStyle(state.piece.style).board;
+  $('#designs').innerHTML = DESIGNS.map(d => `<button class="design" role="radio" data-design="${d.id}" aria-checked="${d.id === memo.design}">
+    <span class="swatch-art">${surface(d.id, paper)}</span><span><strong>${d.name}</strong><small>${d.blurb}</small></span></button>`).join('');
+  $$('[data-design]').forEach(b => b.addEventListener('click', () => { memo.design = b.dataset.design; renderKeepsakes(); }));
+  $('#keepsakes').innerHTML = KEEPSAKES.map(k => `<button class="keepsake" data-keepsake="${k.kind}">
+    ${mockup(k.kind, memo.design, paper)}
+    <strong>${k.name}</strong><small>${k.sizes.length > 1 ? 'From ' : ''}${usd(Math.min(...k.sizes.map(s => s.amount)))}</small></button>`).join('');
+  $$('[data-keepsake]').forEach(b => b.addEventListener('click', () => openProduct(b.dataset.keepsake)));
 }
 
-async function api(path, body) {
-  if (state.config?.offline) return offlineApi(path, body);
-  const res = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`);
-  return data;
+function openProduct(kind) {
+  const k = KEEPSAKES.find(x => x.kind === kind), paper = cleanStyle(state.piece.style).board;
+  memo.product = k; memo.size = 0;
+  $('#ps-shop').hidden = false; $('#ps-done').hidden = true;
+  $('#ps-mock').innerHTML = mockup(k.kind, memo.design, paper, true);
+  $('#ps-name').textContent = k.name;
+  $('#ps-detail').textContent = `${k.detail} Shown in Arcade’s ${DESIGNS.find(d => d.id === memo.design).name.toLowerCase()} design.`;
+  $('#ps-maker').textContent = `Made by ${k.maker}`;
+  renderSizes();
+  $('#product-sheet').showModal();
 }
+
+function renderSizes() {
+  const k = memo.product;
+  $('#ps-sizes').innerHTML = k.sizes.map((s, i) => `<button role="radio" data-size="${i}" aria-checked="${i === memo.size}">${s.label}<b>${usd(s.amount)}</b></button>`).join('');
+  $$('[data-size]').forEach(b => b.addEventListener('click', () => { memo.size = Number(b.dataset.size); renderSizes(); }));
+  $('#ps-buy').disabled = false;
+  $('#ps-buy').textContent = `Buy now · ${usd(k.sizes[memo.size].amount)}`;
+}
+
+$('#ps-buy').addEventListener('click', async () => {
+  const k = memo.product, size = k.sizes[memo.size];
+  $('#ps-buy').disabled = true; $('#ps-buy').textContent = 'Placing your order…';
+  await wait(900);
+  $('#order-title').textContent = `Order CA-${Math.floor(100000 + Math.random() * 900000)}`;
+  $('#order-detail').textContent = `${k.name}, ${size.label} · ${usd(size.amount)}. Made to order by ${k.maker} and shipped in about 2 weeks. Sample order: nothing was charged.`;
+  $('#ps-shop').hidden = true; $('#ps-done').hidden = false;
+  haptic();
+});
+
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 // ---------- Gallery ----------
