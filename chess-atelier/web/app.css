@@ -133,6 +133,7 @@ h1 { font-size: 36px; line-height: 1.1; }
 .board.art-only .pieces button svg { opacity: 0; }
 .board.art-only .squares div { background: transparent; box-shadow: none; }
 .game-seg, #game .seg { margin: 14px 0 0; }
+#game .seg button { font-size: 13px; padding: 0 6px; }
 
 .moves { display: flex; gap: 6px; overflow-x: auto; padding: 12px 2px 4px; scrollbar-width: none; min-height: 44px; }
 .moves::-webkit-scrollbar { display: none; }

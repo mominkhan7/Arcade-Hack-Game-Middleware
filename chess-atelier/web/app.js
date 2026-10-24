@@ -193,7 +193,7 @@ function startGame(mode, {legend = null, pgn = ''} = {}) {
   $('#legend-controls').hidden = !legend;
   $('#legend-note').hidden = !legend;
   if (legend) $('#legend-note').textContent = legend.note;
-  setShowArt(false);
+  setLayer(store.get(layerKey(), legend ? 'both' : 'pieces'), {save: false});
   // The setup screen is behind us now: back from the game goes to where the player started.
   if (state.view === 'setup') state.stack.pop();
   go('game');
@@ -224,10 +224,16 @@ function renderGame() {
     d.classList.toggle('to', d.dataset.sq === last?.to);
   }
 
-  // A move that extends the game draws itself; anything else (undo, scrub, restyle) redraws at once.
-  const animate = history.length === g.drawn + 1 ? 'last' : 'none';
-  painterIn($('#board-art')).paint(history, s, {animate});
-  g.drawn = history.length;
+  // The painting is optional while playing. Shown, a move that extends the game paints itself;
+  // anything else (undo, scrub, restyle, turning the painting on) repaints at once.
+  const art = $('#board-art');
+  art.hidden = state.layer === 'pieces';
+  if (art.hidden) g.drawn = -2;
+  else {
+    const animate = history.length === g.drawn + 1 ? 'last' : 'none';
+    painterIn(art).paint(history, s, {animate});
+    g.drawn = history.length;
+  }
 
   const legal = state.selected ? chess.moves({square: state.selected, verbose: true}) : [];
   const checkSq = chess.inCheck() ? findKing(chess, chess.turn()) : null;
@@ -339,11 +345,16 @@ $('#style-btn').addEventListener('click', () => {
   go('setup');
 });
 
-function setShowArt(on) {
-  $('#board').classList.toggle('art-only', on);
-  $$('[data-show]').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.show === 'art') === on)));
+// What the board shows: 'pieces' (no painting), 'both', or 'art' (the painting without pieces).
+// Remembered separately for playing (off by default) and rewatching famous matches (on by default).
+const layerKey = () => state.game?.legend ? 'atelier-layer-legend' : 'atelier-layer-play';
+function setLayer(layer, {save = true} = {}) {
+  state.layer = ['pieces', 'both', 'art'].includes(layer) ? layer : 'pieces';
+  if (save) store.set(layerKey(), state.layer);
+  $('#board').classList.toggle('art-only', state.layer === 'art');
+  $$('[data-layer]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.layer === state.layer)));
 }
-$$('[data-show]').forEach(b => b.addEventListener('click', () => setShowArt(b.dataset.show === 'art')));
+$$('[data-layer]').forEach(b => b.addEventListener('click', () => { setLayer(b.dataset.layer); if (state.game) renderGame(); }));
 
 // Famous match playback
 function stepTo(index) {
